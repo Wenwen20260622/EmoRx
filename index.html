@@ -221,6 +221,24 @@ select { font-size: 14px; padding: 5px 10px; border-radius: 6px; border: 0.5px s
   0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
   50% { box-shadow: 0 0 0 7px rgba(239, 68, 68, 0); }
 }
+/* 行動裝置語音提示（手機、平板看到，桌機隱藏） */
+.mobile-voice-tip {
+  display: none;
+  font-size: 12px;
+  color: #94a3b8;
+  padding: 4px 10px;
+  border-radius: 14px;
+  background: #0f172a;
+  border: 0.5px solid #334155;
+}
+.mobile-voice-tip b { color: #fbbf24; font-weight: 500; }
+/* 偵測觸控裝置 → 隱藏我們的 🎤，改用鍵盤內建的語音輸入 */
+@media (pointer: coarse) {
+  #mic-btn { display: none !important; }
+  .mobile-voice-tip { display: inline-block; }
+}
+/* 桌機偵測不到麥克風時的淡化樣式 */
+#mic-btn.no-device { opacity: 0.4; cursor: help; }
 /* 語音/語言控制列 */
 #voice-controls { display: flex; gap: 6px; margin-top: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
 .voice-chip { font-size: 12px; padding: 4px 10px; border-radius: 14px; border: 0.5px solid #334155; background: #0f172a; color: #94a3b8; cursor: pointer; font-family: inherit; transition: all 0.15s; }
@@ -591,6 +609,7 @@ select { font-size: 14px; padding: 5px 10px; border-radius: 6px; border: 0.5px s
             <button id="send-btn" disabled>送出</button>
           </div>
           <div id="voice-controls">
+            <span class="mobile-voice-tip">📱 點輸入框，按鍵盤上的 <b>🎤</b> 做語音輸入</span>
             <button id="voice-toggle-btn" class="voice-chip" title="關閉病人語音">🔊 病人語音</button>
             <button id="lang-btn" class="voice-chip" title="切換語言">🌐 中文</button>
           </div>
@@ -1178,11 +1197,23 @@ function initSpeechRecognition() {
     console.warn('SpeechRecognition error:', e.error);
     isRecording = false;
     if (micBtn) { micBtn.classList.remove('recording'); micBtn.textContent = '🎤'; }
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-      alert('無法使用麥克風。請在瀏覽器網址列允許麥克風權限，再試一次。');
-    } else if (e.error === 'no-speech') {
-      // 沒聽到聲音，不彈窗，靜默結束
-    }
+    // 依錯誤型別給精準的提示，不要再誤導使用者
+    const errorMessages = {
+      'not-allowed':
+        '麥克風權限被封鎖。\n\n請點網址列最左邊的鎖頭/圖示，把「麥克風」改為「允許」，然後重新整理頁面。',
+      'service-not-allowed':
+        '語音辨識服務無法使用（可能被瀏覽器或系統政策禁用）。',
+      'audio-capture':
+        '找不到麥克風裝置。\n\n可能原因：\n• 桌機沒接麥克風（需要外接 USB 麥克風、耳麥，或 3.5mm 麥克風）\n• 筆電麥克風被系統停用\n• 其他程式（Teams、Zoom）佔用中',
+      'network':
+        '語音辨識需要連網，但目前連不到 Google 語音辨識服務。\n\n如果你在醫院網路，可能是防火牆擋了；可以嘗試用個人熱點。',
+      'aborted':   null,  // 使用者自己停的，不彈窗
+      'no-speech': null   // 沒說話，靜默結束
+    };
+    const msg = (e.error in errorMessages)
+              ? errorMessages[e.error]
+              : '語音辨識失敗：' + e.error;
+    if (msg) alert(msg);
   };
 
   recog.onend = () => {
@@ -1195,6 +1226,12 @@ function initSpeechRecognition() {
 
 function toggleRecording() {
   if (sessionEnded || isLoading) return;
+  const micBtn = document.getElementById('mic-btn');
+  // 若偵測到沒麥克風，直接給說明不要再嘗試
+  if (micBtn && micBtn.classList.contains('no-device')) {
+    alert('找不到麥克風裝置。\n\n可能原因：\n• 桌機沒接麥克風\n• 筆電麥克風被系統停用\n• 其他程式佔用中\n\n請接上麥克風或關掉佔用的程式，然後重新整理頁面。');
+    return;
+  }
   if (!speechRecognizer) {
     speechRecognizer = initSpeechRecognition();
     if (!speechRecognizer) {
@@ -2093,6 +2130,26 @@ document.getElementById('reset-btn').addEventListener('click', () => loadCase(do
 document.getElementById('mic-btn').addEventListener('click', toggleRecording);
 document.getElementById('voice-toggle-btn').addEventListener('click', toggleVoiceOutput);
 document.getElementById('lang-btn').addEventListener('click', switchLanguage);
+
+// 頁面載入時偵測麥克風硬體；沒有的話把 🎤 按鈕變淡並改 tooltip
+// 用 enumerateDevices() 不會跳權限視窗（不需要權限就能查裝置列表）
+(function detectMicHardware() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+  navigator.mediaDevices.enumerateDevices().then(devices => {
+    const hasMic = devices.some(d => d.kind === 'audioinput');
+    const micBtn = document.getElementById('mic-btn');
+    if (!micBtn) return;
+    if (!hasMic) {
+      micBtn.classList.add('no-device');
+      micBtn.title = '找不到麥克風，請接上麥克風後重新整理頁面';
+      console.warn('[Mic] 找不到任何音訊輸入裝置');
+    } else {
+      console.log('[Mic] 找到', devices.filter(d=>d.kind==='audioinput').length, '個麥克風裝置');
+    }
+  }).catch(err => {
+    console.warn('[Mic] enumerateDevices 失敗:', err);
+  });
+})();
 
 // ── 兩層隨機 helpers（支援 SP-003a/b/c 這種分支案例） ──
 function extractGroupId(caseId) {
