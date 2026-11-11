@@ -1,0 +1,2272 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>藥師溝通訓練系統</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif; background: #060a14; color: #f1f5f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 12px 20px; }
+
+.stage { display: flex; align-items: flex-start; }
+
+/* 左側筆記本分頁 */
+#side-tabs { display: flex; flex-direction: column; gap: 10px; padding-top: 200px; }
+.folder-tab { border: none; border-radius: 10px 0 0 10px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.25s ease; white-space: nowrap; font-family: inherit; color: #78350f; min-width: 90px; text-align: center; margin-right: 0; background: #fef3c7; }
+.folder-tab:hover:not(:disabled):not(.active) { transform: translateX(-18px); background: #fde68a; box-shadow: 0 0 0 1px rgba(251,191,36,0.35); }
+.folder-tab.active { background: #fbbf24; color: #1e293b; transform: translateX(-14px); font-weight: 600; box-shadow: 0 0 0 1px rgba(251,191,36,0.6); }
+.folder-tab:disabled { opacity: 0.35; cursor: default; }
+
+#app { position: relative; display: flex; flex-direction: column; height: calc(100vh - 24px); min-height: 600px; width: 1100px; max-width: calc(100vw - 200px); background: #0f172a; border: 0.5px solid #334155; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.7); }
+
+/* 姓名輸入 modal */
+#name-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(6,10,20,0.92); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 200; }
+#name-modal .modal-box { background: #1e293b; border: 0.5px solid #334155; border-radius: 14px; padding: 34px 38px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+#name-modal h2 { font-size: 20px; color: #fef3c7; margin-bottom: 10px; font-weight: 500; }
+#name-modal h2 .pill { color: #fbbf24; }
+#name-modal .modal-sub { font-size: 14px; color: #94a3b8; margin-bottom: 22px; line-height: 1.7; }
+#name-input { width: 100%; padding: 12px 14px; font-size: 16px; border: 0.5px solid #475569; border-radius: 8px; background: #0f172a; color: #f1f5f9; outline: none; text-align: center; margin-bottom: 14px; font-family: inherit; }
+#name-input:focus { border-color: #fbbf24; }
+#name-input::placeholder { color: #64748b; }
+#name-submit { width: 100%; padding: 11px; font-size: 16px; border-radius: 8px; border: none; background: #fbbf24; color: #1e293b; cursor: pointer; font-weight: 500; transition: background 0.15s; font-family: inherit; }
+#name-submit:hover:not(:disabled) { background: #fcd34d; }
+#name-submit:disabled { opacity: 0.35; cursor: default; }
+.name-error { color: #f87171; font-size: 13px; margin-top: 10px; min-height: 14px; }
+.name-status { color: #94a3b8; font-size: 13px; margin-top: 10px; min-height: 14px; }
+.teacher-login-link { color: #fbbf24; font-size: 14px; cursor: pointer; text-align: center; margin-top: 16px; padding: 8px 12px; border: 0.5px solid #78350f; border-radius: 6px; background: #451a03; transition: all 0.15s; font-weight: 500; }
+.teacher-login-link:hover { background: #5a2408; color: #fef3c7; border-color: #92400e; }
+.teacher-back-link { color: #64748b; font-size: 13px; cursor: pointer; margin-top: 12px; text-align: center; transition: color 0.15s; }
+.teacher-back-link:hover { color: #94a3b8; }
+#teacher-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(6,10,20,0.92); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 200; }
+#teacher-input { width: 100%; padding: 12px 14px; font-size: 16px; border: 0.5px solid #475569; border-radius: 8px; background: #0f172a; color: #f1f5f9; outline: none; text-align: center; margin-bottom: 14px; font-family: inherit; }
+#teacher-input:focus { border-color: #fbbf24; }
+#teacher-input::placeholder { color: #64748b; }
+#teacher-submit { width: 100%; padding: 11px; font-size: 16px; border-radius: 8px; border: none; background: #fbbf24; color: #1e293b; cursor: pointer; font-weight: 500; transition: background 0.15s; font-family: inherit; }
+#teacher-submit:hover:not(:disabled) { background: #fcd34d; }
+#teacher-submit:disabled { opacity: 0.35; cursor: default; }
+
+/* 自評 modal */
+#self-eval-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(6,10,20,0.92); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 250; }
+#self-eval-modal.show { display: flex; }
+.self-eval-box { background: #1e293b; border: 0.5px solid #334155; border-radius: 14px; padding: 30px 32px; width: 90%; max-width: 480px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+.self-eval-box h2 { font-size: 19px; color: #fef3c7; margin-bottom: 8px; font-weight: 500; text-align: center; }
+.self-eval-row { margin-bottom: 18px; }
+.self-eval-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 14px; color: #cbd5e1; }
+.self-eval-value { color: #fbbf24; font-weight: 500; font-size: 16px; min-width: 32px; text-align: right; }
+.self-slider { width: 100%; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: #0f172a; outline: none; cursor: pointer; }
+.self-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fbbf24; cursor: pointer; border: 2px solid #78350f; }
+.self-slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fbbf24; cursor: pointer; border: 2px solid #78350f; }
+#self-eval-submit { width: 100%; padding: 12px; font-size: 16px; border-radius: 8px; border: none; background: #fbbf24; color: #1e293b; cursor: pointer; font-weight: 500; transition: background 0.15s; font-family: inherit; margin-top: 10px; }
+#self-eval-submit:hover { background: #fcd34d; }
+.self-eval-hint { color: #64748b; font-size: 12px; text-align: center; margin-top: 10px; font-style: italic; }
+
+/* 成長卡 modal */
+.growth-modal { display: none; position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(6,10,20,0.94); backdrop-filter: blur(8px); z-index: 300; justify-content: center; align-items: flex-start; padding: 20px; overflow-y: auto; }
+.growth-modal.show { display: flex; }
+.growth-modal-inner { width: 100%; max-width: 440px; margin: 20px auto; }
+.growth-modal-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.modal-hint { color: #94a3b8; font-size: 11px; letter-spacing: 0.2px; }
+.growth-btn { padding: 8px 16px; border-radius: 8px; border: 0.5px solid #334155; background: #1e293b; color: #cbd5e1; cursor: pointer; font-family: inherit; font-size: 12px; }
+.growth-btn:hover { background: #293548; color: #fef3c7; }
+.growth-btn.primary { background: #451a03; color: #fbbf24; border-color: #78350f; }
+.growth-btn.primary:hover { background: #5a2408; color: #fef3c7; }
+
+/* 成長卡本體 */
+#growth-card { width: 100%; background: #0f172a; border: 0.5px solid #334155; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.6); color: #cbd5e1; font-family: inherit; }
+.gc-top-bar, .gc-bottom-bar { height: 4px; background: #fbbf24; }
+.gc-section { padding: 22px 26px; border-bottom: 0.5px solid #334155; }
+.gc-header-section { text-align: center; }
+.gc-eyebrow { font-size: 10px; letter-spacing: 4px; color: #fbbf24; margin-bottom: 6px; }
+.gc-title { font-size: 17px; color: #fef3c7; font-weight: 500; margin-bottom: 12px; }
+.gc-meta { font-size: 11px; color: #94a3b8; }
+.gc-case-section { text-align: center; }
+.gc-case-tag { display: inline-flex; align-items: center; gap: 5px; background: #451a03; color: #fbbf24; border: 0.5px solid #78350f; border-radius: 20px; padding: 4px 11px; font-size: 11px; margin-bottom: 10px; }
+.gc-case-sub { font-size: 11px; color: #94a3b8; }
+.gc-score-section { text-align: center; padding: 30px 26px; }
+.gc-score-value { font-size: 60px; color: #fbbf24; font-weight: 500; line-height: 1; margin-bottom: 8px; }
+.gc-score-label { font-size: 11px; color: #94a3b8; margin-bottom: 14px; }
+.gc-result-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 20px; padding: 6px 16px; font-size: 12px; font-weight: 500; }
+.gc-result-badge.success { background: #14532d; color: #86efac; border: 0.5px solid #166534; }
+.gc-result-badge.fail    { background: #450a0a; color: #fca5a5; border: 0.5px solid #7f1d1d; }
+.gc-result-badge.ongoing { background: #172554; color: #93c5fd; border: 0.5px solid #1e3a8a; }
+.gc-dim-header { font-size: 10px; color: #94a3b8; margin-bottom: 14px; letter-spacing: 0.5px; display: flex; justify-content: space-between; }
+.gc-dim-hint { color: #64748b; }
+.gc-dim-list { display: flex; flex-direction: column; gap: 10px; }
+.gc-dim-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+.gc-dim-label { color: #cbd5e1; }
+.gc-dim-scores { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; font-size: 12px; }
+.gc-dim-ai { color: #fbbf24; min-width: 22px; text-align: right; }
+.gc-dim-sep { color: #475569; font-size: 10px; }
+.gc-dim-self { color: #7dd3fc; min-width: 22px; }
+.gc-dim-gap { font-size: 10px; margin-left: 4px; }
+.gc-dim-gap.high { color: #f87171; }
+.gc-dim-gap.low  { color: #64748b; }
+
+/* 四維雷達圖 */
+.gc-radar-wrap { display: flex; justify-content: center; margin: 4px 0 14px; }
+.gc-radar-svg { width: 100%; max-width: 240px; height: auto; }
+.gc-radar-legend { display: flex; justify-content: center; gap: 18px; margin-bottom: 8px; font-size: 10px; color: #94a3b8; }
+.gc-radar-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.gc-radar-legend-dot { width: 9px; height: 9px; border-radius: 2px; }
+.gc-radar-legend-ai { background: #fbbf24; }
+.gc-radar-legend-self { background: #7dd3fc; }
+.gc-radar-grid { fill: none; stroke: #334155; stroke-width: 0.5; }
+.gc-radar-axis { stroke: #334155; stroke-width: 0.5; }
+.gc-radar-label { font-size: 10px; fill: #cbd5e1; font-weight: 500; }
+.gc-radar-poly-ai { fill: #fbbf24; fill-opacity: 0.22; stroke: #fbbf24; stroke-width: 2; }
+.gc-radar-poly-self { fill: #7dd3fc; fill-opacity: 0.15; stroke: #7dd3fc; stroke-width: 1.5; stroke-dasharray: 4 3; }
+.gc-radar-point-ai { fill: #fbbf24; }
+.gc-radar-point-self { fill: #7dd3fc; }
+.gc-radar-tick-label { font-size: 8px; fill: #475569; }
+.gc-emotion-section { display: flex; justify-content: space-between; align-items: center; padding: 16px 26px; border-bottom: 0.5px solid #334155; }
+.gc-emotion-label { font-size: 11px; color: #94a3b8; }
+.gc-emotion-flow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; }
+.gc-feedback-header { font-size: 10px; color: #94a3b8; margin-bottom: 8px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 5px; }
+.gc-feedback-icon { color: #fbbf24; }
+.gc-feedback-text { font-size: 12px; color: #cbd5e1; line-height: 1.7; }
+
+/* 桌機版：≥ 768px 走兩欄布局，適合一頁截圖 */
+@media (min-width: 768px) {
+  .growth-modal-inner { max-width: 820px; }
+  .gc-main-body { display: flex; }
+  .gc-left-col { flex: 0 0 42%; border-right: 0.5px solid #334155; display: flex; flex-direction: column; }
+  .gc-right-col { flex: 1; display: flex; flex-direction: column; }
+  .gc-left-col > .gc-section:last-child,
+  .gc-right-col > .gc-feedback-block { border-bottom: none; }
+  .gc-score-section { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .gc-header-section { padding: 26px 30px; }
+  .gc-score-value { font-size: 72px; }
+  .gc-feedback-block { flex: 1; }
+}
+
+/* 產生成長卡按鈕 */
+.growth-card-trigger { display: none; margin-top: 12px; width: 100%; padding: 10px; border-radius: 8px; border: 0.5px solid #78350f; background: #451a03; color: #fbbf24; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 500; transition: all 0.15s; }
+.growth-card-trigger:hover { background: #5a2408; color: #fef3c7; }
+.growth-card-trigger.show { display: block; }
+
+/* Loading 遮罩 */
+#loading-overlay { position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(15,23,42,0.94); backdrop-filter: blur(4px); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; text-align: center; padding: 20px; }
+.spinner { width: 40px; height: 40px; border: 4px solid #334155; border-top-color: #fbbf24; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading-text { font-size: 17px; font-weight: 500; margin-bottom: 8px; color: #fef3c7; }
+#loading-sub { font-size: 14px; color: #94a3b8; }
+
+/* 頂部工具列 */
+.case-select-wrap { padding: 10px 14px; border-bottom: 0.5px solid #334155; display: flex; gap: 8px; align-items: center; background: #1e293b; flex-shrink: 0; }
+.case-select-wrap label { font-size: 14px; color: #94a3b8; white-space: nowrap; }
+select { font-size: 14px; padding: 5px 10px; border-radius: 6px; border: 0.5px solid #334155; background: #0f172a; color: #f1f5f9; flex: 1; outline: none; font-family: inherit; }
+#reset-btn { font-size: 14px; padding: 5px 12px; border-radius: 6px; border: 0.5px solid #334155; background: #0f172a; color: #cbd5e1; cursor: pointer; white-space: nowrap; font-family: inherit; }
+#reset-btn:hover { background: #293548; }
+#random-btn { font-size: 14px; padding: 5px 12px; border-radius: 6px; border: 0.5px solid #78350f; background: #451a03; color: #fbbf24; cursor: pointer; white-space: nowrap; font-family: inherit; }
+#random-btn:hover { background: #5a2408; color: #fef3c7; }
+#pharmacist-tag { font-size: 13px; padding: 4px 10px; border-radius: 20px; background: #164e63; color: #7dd3fc; border: 0.5px solid #0e7490; white-space: nowrap; }
+
+/* 主體 flex 佈局 */
+#main-body { display: flex; flex: 1; min-height: 0; }
+#left-panel { flex: 1; display: flex; flex-direction: column; border-right: 0.5px solid #334155; min-width: 0; position: relative; }
+#right-panel { width: 300px; display: flex; flex-direction: column; background: #1a2438; flex-shrink: 0; }
+
+/* 案例標頭 */
+#case-header { padding: 12px 14px; border-bottom: 0.5px solid #334155; min-height: 92px; display: flex; flex-direction: column; justify-content: center; }
+.case-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; padding: 3px 10px; border-radius: 20px; font-weight: 500; margin-bottom: 6px; background: #451a03; color: #fbbf24; border: 0.5px solid #78350f; }
+#case-title { font-size: 16px; font-weight: 500; color: #fef3c7; margin-bottom: 3px; }
+#case-sub { font-size: 13px; color: #94a3b8; }
+
+/* 情緒條 */
+#emotion-bar-wrap { padding: 10px 14px; border-bottom: 0.5px solid #334155; }
+.emotion-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.emotion-label { font-size: 13px; color: #94a3b8; }
+#emotion-text { font-size: 14px; font-weight: 500; }
+#emotion-track { height: 5px; border-radius: 3px; background: #1e293b; overflow: hidden; }
+#emotion-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease, background 0.6s ease; }
+
+/* 對話區 */
+#messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; background: #0f172a; }
+.msg { display: flex; gap: 8px; max-width: 88%; }
+.msg.patient { align-self: flex-start; }
+.msg.student { align-self: flex-end; flex-direction: row-reverse; }
+.msg.system { align-self: center; max-width: 90%; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; flex-shrink: 0; overflow: hidden; }
+.avatar.p { background: #334155; color: #cbd5e1; border: 0.5px solid #475569; }
+.avatar.p.has-img { background-size: cover; background-position: center top; border: 0.5px solid #475569; }
+.avatar.s { background: #78350f; color: #fbbf24; border: 0.5px solid #92400e; }
+.bubble { padding: 9px 13px; border-radius: 10px; font-size: 15px; line-height: 1.6; word-break: break-all; }
+.msg.patient .bubble { background: #293548; color: #e2e8f0; border: 0.5px solid #334155; border-radius: 2px 10px 10px 10px; }
+.msg.student .bubble { background: #451a03; color: #fef3c7; border: 0.5px solid #78350f; border-radius: 10px 2px 10px 10px; }
+.system-bubble { background: #1e293b; color: #cbd5e1; border: 0.5px solid #334155; border-radius: 8px; font-size: 14px; padding: 9px 16px; text-align: center; line-height: 1.6; }
+.system-bubble .site-label { color: #fbbf24; font-weight: 500; }
+.hint-bubble { background: #1e1b3a; color: #cbd5e1; border: 0.5px dashed #6b5cb8; border-radius: 8px; font-size: 14px; padding: 9px 16px; text-align: center; line-height: 1.7; }
+.hint-bubble .hint-label { color: #c4b5fd; font-weight: 500; }
+.hint-bubble .hint-example { color: #94a3b8; font-size: 13px; display: block; margin-top: 4px; font-style: italic; }
+.msg-time { font-size: 12px; color: #64748b; margin-top: 3px; padding: 0 2px; }
+
+/* 輸入區 */
+#input-area { padding: 12px 14px; border-top: 0.5px solid #334155; background: #1e293b; flex-shrink: 0; }
+#hint-row { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.hint-btn { font-size: 13px; padding: 5px 10px; border-radius: 20px; border: 0.5px solid #334155; background: #0f172a; color: #94a3b8; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+.hint-btn:hover { background: #293548; color: #fef3c7; }
+#input-row { display: flex; gap: 8px; align-items: flex-end; }
+#user-input { flex: 1; padding: 10px 12px; font-size: 15px; border: 0.5px solid #334155; border-radius: 8px; background: #0f172a; color: #f1f5f9; resize: none; height: 60px; outline: none; font-family: inherit; }
+#user-input:focus { border-color: #fbbf24; }
+#user-input::placeholder { color: #64748b; }
+#send-btn { padding: 0 18px; font-size: 15px; border-radius: 8px; border: 0.5px solid #92400e; background: #78350f; color: #fef3c7; cursor: pointer; font-weight: 500; height: 40px; white-space: nowrap; font-family: inherit; }
+#send-btn:hover:not(:disabled) { background: #92400e; }
+#send-btn:disabled { opacity: 0.35; cursor: default; }
+/* 麥克風按鈕 */
+#mic-btn { padding: 0 12px; font-size: 18px; border-radius: 8px; border: 0.5px solid #334155; background: #1e293b; color: #cbd5e1; cursor: pointer; height: 40px; white-space: nowrap; font-family: inherit; transition: all 0.15s; min-width: 44px; }
+#mic-btn:hover:not(:disabled) { background: #334155; color: #fef3c7; }
+#mic-btn:disabled { opacity: 0.35; cursor: default; }
+#mic-btn.recording { background: #7f1d1d; border-color: #b91c1c; color: #fecaca; animation: micPulse 1.2s ease-in-out infinite; }
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+  50% { box-shadow: 0 0 0 7px rgba(239, 68, 68, 0); }
+}
+/* 語音/語言控制列 */
+#voice-controls { display: flex; gap: 6px; margin-top: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.voice-chip { font-size: 12px; padding: 4px 10px; border-radius: 14px; border: 0.5px solid #334155; background: #0f172a; color: #94a3b8; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.voice-chip:hover { background: #1e293b; color: #fef3c7; }
+.voice-chip.off { color: #64748b; background: #0f172a; }
+.voice-chip.speaking { color: #86efac; border-color: #166534; animation: chipPulse 1.5s ease-in-out infinite; }
+@keyframes chipPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+#voice-hint { font-size: 11px; color: #64748b; margin-top: 6px; padding: 0 4px; line-height: 1.5; }
+#voice-hint b { color: #94a3b8; font-weight: 500; }
+
+/* 右側面板：病人資訊 + AI 分析 */
+#patient-profile { padding: 12px 14px; border-bottom: 0.5px solid #334155; display: none; align-items: center; gap: 10px; flex-shrink: 0; min-height: 92px; }
+#patient-icon-wrap { width: 44px; height: 44px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; position: relative; }
+#patient-avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#patient-icon { font-size: 24px; color: #fbbf24; }
+.patient-details { font-size: 13px; color: #94a3b8; line-height: 1.6; min-width: 0; }
+.patient-details strong { color: #fef3c7; font-size: 15px; font-weight: 500; display: block; }
+
+#right-panel-header { padding: 10px 14px; border-bottom: 0.5px solid #334155; font-size: 15px; font-weight: 500; color: #fef3c7; flex-shrink: 0; }
+#right-panel-header .brain-icon { color: #fbbf24; }
+
+/* AI 分析區與鎖定遮罩 */
+#right-content { flex: 1; position: relative; overflow-y: auto; background: #0f172a; }
+
+/* Hero 病人頭像（演練中顯示） */
+#hero-avatar-wrap { padding: 14px 14px 20px; }
+#hero-avatar-img { width: 100%; aspect-ratio: 3/4; object-fit: cover; object-position: center top; border-radius: 16px; display: none; background: #1e293b; transition: opacity 0.35s ease; }
+#hero-avatar-img.fading { opacity: 0; }
+#hero-avatar-fallback { width: 100%; aspect-ratio: 3/4; border-radius: 16px; background: #1e293b; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; }
+
+/* Secret info（演練結束後才顯示） */
+#secret-info { display: none; padding: 14px; }
+#right-content.ended #hero-avatar-wrap { display: none; }
+#right-content.ended #secret-info { display: block; animation: fadeIn 0.5s ease; }
+
+.lock-icon { font-size: 40px; color: #fbbf24; margin-bottom: 14px; line-height: 1; }
+.lock-text { color: #fbbf24; font-size: 15px; font-weight: 500; }
+
+.info-card { background: #1e293b; border: 0.5px solid #334155; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+.info-card-label { font-size: 12px; font-weight: 500; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 5px; }
+.info-card-value { font-size: 14px; color: #cbd5e1; line-height: 1.6; }
+.info-card-value.danger { color: #fca5a5; }
+
+/* 分析區 */
+#analysis-section { display: none; }
+#analysis-section.show { display: block; animation: fadeIn 0.8s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.score-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+.score-label { font-size: 13px; color: #94a3b8; }
+.score-val { font-size: 14px; font-weight: 500; color: #fef3c7; }
+.score-dual { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 500; }
+.score-ai { color: #fbbf24; min-width: 24px; text-align: right; }
+.score-sep { color: #475569; font-size: 12px; }
+.score-self { color: #7dd3fc; min-width: 24px; text-align: left; }
+.score-gap { font-size: 12px; margin-left: 6px; }
+.score-gap.high { color: #f87171; }
+.score-gap.low { color: #64748b; }
+.score-bar-wrap { height: 4px; background: #1e293b; border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
+.score-bar { height: 100%; border-radius: 2px; transition: width 1s ease; }
+.result-card { padding: 10px 12px; border-radius: 8px; border: 0.5px solid; margin: 10px 0; font-size: 15px; font-weight: 500; }
+.result-success { background: #14532d; border-color: #166534; color: #86efac; }
+.result-fail { background: #450a0a; border-color: #7f1d1d; color: #fca5a5; }
+.result-ongoing { background: #172554; border-color: #1e3a8a; color: #93c5fd; }
+#save-status { font-size: 13px; margin-top: 6px; text-align: center; min-height: 14px; }
+.loading-dots::after { content:'●'; animation: dots 1.2s steps(3,end) infinite; }
+@keyframes dots { 0%,100%{content:'●'} 33%{content:'●●'} 66%{content:'●●●'} }
+
+/* ============ 手機版排版（≤ 767px） ============ */
+@media (max-width: 767px) {
+  body { padding: 0; margin: 0; min-height: 100vh; }
+  .stage { flex-direction: column; align-items: stretch; padding: 0; gap: 0; }
+
+  /* 左側筆記本分頁改為頂部橫向按鈕列 */
+  #side-tabs {
+    flex-direction: row;
+    padding: 8px 10px 0;
+    gap: 6px;
+    background: #0f172a;
+    border-bottom: 0.5px solid #334155;
+    padding-top: 12px;
+  }
+  .folder-tab {
+    flex: 1;
+    border-radius: 8px 8px 0 0;
+    padding: 10px 6px;
+    font-size: 13px;
+    min-width: 0;
+    margin: 0;
+  }
+  .folder-tab:hover:not(:disabled):not(.active) { transform: none; }
+  .folder-tab.active { transform: none; }
+
+  /* App 主容器全螢幕 */
+  #app {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: calc(100vh - 60px);
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  /* 頂部工具列可換行 */
+  .case-select-wrap {
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .case-select-wrap label { font-size: 13px; }
+  #case-select { flex: 1; min-width: 120px; font-size: 14px; }
+  #random-btn, #reset-btn { font-size: 13px; padding: 6px 10px; }
+  #pharmacist-tag { font-size: 12px; }
+
+  /* 主體改為單欄疊層 */
+  #main-body { flex-direction: column; }
+  #left-panel { border-right: none; border-bottom: 0.5px solid #334155; min-width: 0; }
+  #right-panel { width: 100%; flex-shrink: 0; }
+
+  /* 各區塊 padding 縮小 */
+  #case-header { padding: 10px 12px; }
+  #emotion-bar-wrap { padding: 8px 12px; }
+  #emotion-track { height: 8px; }
+  #messages { min-height: 250px; padding: 10px 12px; }
+  #patient-profile { padding: 10px 12px; min-height: 0; }
+  #right-panel-header { padding: 10px 12px; font-size: 14px; }
+
+  /* 輸入區調整為易點擊尺寸（44px 為 iOS 建議 tap 尺寸） */
+  #input-area { padding: 8px 12px; }
+  #input-row { gap: 6px; }
+  #user-input { font-size: 14px; height: 44px; }
+  #send-btn { padding: 0 14px; font-size: 14px; height: 44px; }
+  #mic-btn { padding: 0 10px; font-size: 18px; height: 44px; min-width: 44px; }
+  #voice-hint { font-size: 10px; margin-top: 4px; }
+
+  /* Hero 頭像改為橫式扁比例（避免整個螢幕都是臉） */
+  #hero-avatar-wrap { padding: 10px 12px 16px; }
+  #hero-avatar-img {
+    aspect-ratio: 16/10;
+    max-height: 240px;
+    object-position: center 20%;
+    border-radius: 12px;
+  }
+  #hero-avatar-fallback {
+    aspect-ratio: 16/10;
+    max-height: 240px;
+    border-radius: 12px;
+  }
+
+  /* 對話氣泡 */
+  .avatar { width: 32px; height: 32px; font-size: 14px; }
+  .bubble { font-size: 14px; padding: 8px 12px; }
+  .msg-time { font-size: 10px; }
+
+  /* Modal 放大到接近滿版 */
+  #name-modal .modal-box,
+  #teacher-modal .modal-box {
+    width: 92%;
+    max-width: 92%;
+    padding: 24px 20px;
+  }
+  .self-eval-box {
+    width: 92%;
+    max-width: 92%;
+    padding: 22px 18px;
+  }
+  #name-modal h2, #teacher-modal h2, .self-eval-box h2 { font-size: 18px; }
+  .modal-sub { font-size: 13px; }
+  #name-input, #teacher-input { font-size: 15px; height: 44px; }
+  #name-submit, #teacher-submit, #self-eval-submit { font-size: 15px; height: 46px; }
+  .teacher-login-link { font-size: 13px; }
+  .self-eval-header { font-size: 13px; }
+  .self-eval-value { font-size: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div id="name-modal">
+  <div class="modal-box">
+    <h2>歡迎進入藥師溝通訓練</h2>
+    <div class="modal-sub">病人將以「○○ 藥師」稱呼您</div>
+    <input type="text" id="name-input" placeholder="請輸入您的姓名" maxlength="10" autocomplete="off">
+    <button id="name-submit" disabled>開始演練</button>
+    <div class="name-error" id="name-error"></div>
+    <div class="name-status" id="name-status">正在背景載入案例庫與人格庫...</div>
+    <div class="teacher-login-link" id="teacher-login-link">教師登入</div>
+  </div>
+</div>
+
+<div id="teacher-modal" style="display:none">
+  <div class="modal-box">
+    <h2>教師後台登入</h2>
+    <div class="modal-sub">請輸入您的員工代號</div>
+    <input type="text" id="teacher-input" placeholder="員工代號" maxlength="20" autocomplete="off">
+    <button id="teacher-submit" disabled>登入後台</button>
+    <div class="name-error" id="teacher-error"></div>
+    <div class="teacher-back-link" id="teacher-back-link">← 返回學員登入</div>
+  </div>
+</div>
+
+<div id="self-eval-modal">
+  <div class="self-eval-box">
+    <h2>演練結束 · 請先自我評分</h2>
+    <div class="modal-sub">回想剛才的表現，先幫自己打分，再看 AI 怎麼給分</div>
+
+    <div class="self-eval-row">
+      <div class="self-eval-header"><span>同理心</span><span class="self-eval-value" id="sv-empathy">50</span></div>
+      <input type="range" min="0" max="100" value="50" id="si-empathy" class="self-slider">
+    </div>
+    <div class="self-eval-row">
+      <div class="self-eval-header"><span>專業度</span><span class="self-eval-value" id="sv-prof">50</span></div>
+      <input type="range" min="0" max="100" value="50" id="si-prof" class="self-slider">
+    </div>
+    <div class="self-eval-row">
+      <div class="self-eval-header"><span>情緒控管</span><span class="self-eval-value" id="sv-calm">50</span></div>
+      <input type="range" min="0" max="100" value="50" id="si-calm" class="self-slider">
+    </div>
+    <div class="self-eval-row">
+      <div class="self-eval-header"><span>解決方向</span><span class="self-eval-value" id="sv-sol">50</span></div>
+      <input type="range" min="0" max="100" value="50" id="si-sol" class="self-slider">
+    </div>
+
+    <button id="self-eval-submit">送出自評，查看 AI 分析</button>
+    <div class="self-eval-hint">送出後才會執行 AI 分析，之後就無法再修改自評分數</div>
+  </div>
+</div>
+
+<div id="growth-card-modal" class="growth-modal">
+  <div class="growth-modal-inner">
+    <div class="growth-modal-actions">
+      <div class="modal-hint">請使用系統截圖工具擷取：Mac ⌘+Shift+4 · Windows Win+Shift+S</div>
+      <button id="close-card-btn" class="growth-btn">關閉</button>
+    </div>
+    <div id="growth-card">
+      <div class="gc-top-bar"></div>
+      <div class="gc-section gc-header-section">
+        <div class="gc-eyebrow">DEBRIEFING</div>
+        <div class="gc-title">藥師溝通訓練回顧</div>
+        <div class="gc-meta" id="gc-meta">—</div>
+      </div>
+      <div class="gc-main-body">
+        <div class="gc-left-col">
+          <div class="gc-section gc-case-section">
+            <div class="gc-case-tag" id="gc-case-tag">—</div>
+            <div class="gc-case-sub" id="gc-case-sub">—</div>
+          </div>
+          <div class="gc-section gc-score-section">
+            <div class="gc-score-value" id="gc-score-value">—</div>
+            <div class="gc-score-label">四維平均分數</div>
+            <div class="gc-result-badge" id="gc-result-badge">—</div>
+          </div>
+        </div>
+        <div class="gc-right-col">
+          <div class="gc-section">
+            <div class="gc-dim-header">
+              <span>四維表現 · AI / 自評</span>
+              <span class="gc-dim-hint">▲ 高估 · ▼ 低估</span>
+            </div>
+            <div class="gc-radar-legend">
+              <span class="gc-radar-legend-item"><span class="gc-radar-legend-dot gc-radar-legend-ai"></span>AI 評分</span>
+              <span class="gc-radar-legend-item"><span class="gc-radar-legend-dot gc-radar-legend-self"></span>自評</span>
+            </div>
+            <div class="gc-radar-wrap">
+              <svg class="gc-radar-svg" viewBox="0 0 280 260" aria-label="四維雷達圖">
+                <!-- 格線（25/50/75/100 四圈） -->
+                <polygon class="gc-radar-grid" points="140,105 165,130 140,155 115,130"/>
+                <polygon class="gc-radar-grid" points="140,80 190,130 140,180 90,130"/>
+                <polygon class="gc-radar-grid" points="140,55 215,130 140,205 65,130"/>
+                <polygon class="gc-radar-grid" points="140,30 240,130 140,230 40,130"/>
+                <!-- 軸線 -->
+                <line class="gc-radar-axis" x1="140" y1="130" x2="140" y2="30"/>
+                <line class="gc-radar-axis" x1="140" y1="130" x2="240" y2="130"/>
+                <line class="gc-radar-axis" x1="140" y1="130" x2="140" y2="230"/>
+                <line class="gc-radar-axis" x1="140" y1="130" x2="40" y2="130"/>
+                <!-- 刻度 -->
+                <text class="gc-radar-tick-label" x="143" y="107">25</text>
+                <text class="gc-radar-tick-label" x="143" y="82">50</text>
+                <text class="gc-radar-tick-label" x="143" y="57">75</text>
+                <!-- 動態多邊形（由 JS 填入 points） -->
+                <polygon class="gc-radar-poly-ai"   id="gc-radar-ai-poly" points="140,130 140,130 140,130 140,130"/>
+                <polygon class="gc-radar-poly-self" id="gc-radar-self-poly" points="140,130 140,130 140,130 140,130"/>
+                <circle class="gc-radar-point-ai"   id="gc-radar-ai-top"    cx="140" cy="130" r="3.5"/>
+                <circle class="gc-radar-point-ai"   id="gc-radar-ai-right"  cx="140" cy="130" r="3.5"/>
+                <circle class="gc-radar-point-ai"   id="gc-radar-ai-bottom" cx="140" cy="130" r="3.5"/>
+                <circle class="gc-radar-point-ai"   id="gc-radar-ai-left"   cx="140" cy="130" r="3.5"/>
+                <circle class="gc-radar-point-self" id="gc-radar-self-top"    cx="140" cy="130" r="3"/>
+                <circle class="gc-radar-point-self" id="gc-radar-self-right"  cx="140" cy="130" r="3"/>
+                <circle class="gc-radar-point-self" id="gc-radar-self-bottom" cx="140" cy="130" r="3"/>
+                <circle class="gc-radar-point-self" id="gc-radar-self-left"   cx="140" cy="130" r="3"/>
+                <!-- 維度標籤 -->
+                <text class="gc-radar-label" x="140" y="20" text-anchor="middle">同理心</text>
+                <text class="gc-radar-label" x="252" y="134" text-anchor="start">專業度</text>
+                <text class="gc-radar-label" x="140" y="250" text-anchor="middle">情緒控管</text>
+                <text class="gc-radar-label" x="28" y="134" text-anchor="end">解決方向</text>
+              </svg>
+            </div>
+            <div class="gc-dim-list">
+              <div class="gc-dim-row"><span class="gc-dim-label">同理心</span><span class="gc-dim-scores" id="gc-dim-empathy">—</span></div>
+              <div class="gc-dim-row"><span class="gc-dim-label">專業度</span><span class="gc-dim-scores" id="gc-dim-prof">—</span></div>
+              <div class="gc-dim-row"><span class="gc-dim-label">情緒控管</span><span class="gc-dim-scores" id="gc-dim-calm">—</span></div>
+              <div class="gc-dim-row"><span class="gc-dim-label">解決方向</span><span class="gc-dim-scores" id="gc-dim-sol">—</span></div>
+            </div>
+          </div>
+          <div class="gc-emotion-section">
+            <div class="gc-emotion-label">病人情緒變化</div>
+            <div class="gc-emotion-flow" id="gc-emotion-flow">—</div>
+          </div>
+          <div class="gc-section gc-feedback-block">
+            <div class="gc-feedback-header"><span class="gc-feedback-icon">◆</span> AI 教練回饋</div>
+            <div class="gc-feedback-text" id="gc-feedback-text">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="gc-bottom-bar"></div>
+    </div>
+  </div>
+</div>
+
+<div class="stage">
+  <div id="side-tabs">
+    <button class="folder-tab tab-pharmacist" data-type="pharmacist" disabled>內部藥師</button>
+    <button class="folder-tab tab-doctor" data-type="doctor" disabled>診間醫師</button>
+    <button class="folder-tab tab-system" data-type="system" disabled>調劑系統</button>
+  </div>
+
+  <div id="app">
+    <div id="loading-overlay" style="display:none">
+      <div class="spinner"></div>
+      <div id="loading-text">準備中...</div>
+      <div id="loading-sub">請稍候</div>
+    </div>
+
+    <div class="case-select-wrap">
+      <label>情境</label>
+      <select id="case-select"></select>
+      <button id="random-btn" title="隨機切換病人類型">🎲 隨機</button>
+      <button id="reset-btn">⟳ 重置</button>
+      <span id="pharmacist-tag">藥師：未登入</span>
+    </div>
+
+    <div id="main-body">
+      <div id="left-panel">
+
+        <div id="case-header">
+          <div class="case-tag">📋 <span id="cat-text">載入中</span></div>
+          <div id="case-sub"></div>
+        </div>
+
+        <div id="emotion-bar-wrap">
+          <div class="emotion-label-row">
+            <span class="emotion-label">病人情緒</span>
+            <span id="emotion-text" style="color:#f87171">Level 3 憤怒質疑</span>
+          </div>
+          <div id="emotion-track"><div id="emotion-fill" style="width:60%;background:#f87171"></div></div>
+        </div>
+
+        <div id="messages"></div>
+
+        <div id="input-area">
+          <div id="hint-row"></div>
+          <div id="input-row">
+            <textarea id="user-input" placeholder="輸入您的藥師回應..." disabled></textarea>
+            <button id="mic-btn" title="按一下開始/停止語音輸入" disabled>🎤</button>
+            <button id="send-btn" disabled>送出</button>
+          </div>
+          <div id="voice-controls">
+            <button id="voice-toggle-btn" class="voice-chip" title="關閉病人語音">🔊 病人語音</button>
+            <button id="lang-btn" class="voice-chip" title="切換語言">🌐 中文</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="right-panel">
+        <div id="patient-profile">
+          <div class="patient-details">
+            <strong id="p-desc"></strong>
+            <span id="p-job"></span>
+            <span id="p-trait"></span>
+          </div>
+        </div>
+
+        <div id="right-panel-header"><span class="brain-icon">🧠</span> AI 分析</div>
+
+        <div id="right-content">
+          <div id="hero-avatar-wrap">
+            <img id="hero-avatar-img" src="" alt="病人">
+            <div id="hero-avatar-fallback">
+              <div class="lock-icon">🔒</div>
+              <div class="lock-text">結束後解鎖分析結果</div>
+            </div>
+          </div>
+
+          <div id="secret-info">
+            <div class="info-card">
+              <div class="info-card-label">學習目標</div>
+              <div class="info-card-value" id="goal-text">—</div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-label">致命失誤</div>
+              <div class="info-card-value danger" id="fatal-text">—</div>
+            </div>
+
+            <div id="analysis-section">
+              <div style="height:0.5px;background:#334155;margin:4px 0 12px"></div>
+              <div style="font-size:13px;font-weight:500;color:#fbbf24;margin-bottom:6px;letter-spacing:0.5px">✨ 演練完成！分析如下：</div>
+              <div style="font-size:12px;color:#64748b;margin-bottom:10px;display:flex;justify-content:space-between"><span>AI 給分</span><span>你自評</span></div>
+              <div class="score-row"><span class="score-label">同理心</span><span class="score-dual"><span class="score-ai" id="s-empathy">—</span><span class="score-sep">/</span><span class="score-self" id="ss-empathy">—</span><span class="score-gap" id="g-empathy"></span></span></div>
+              <div class="score-bar-wrap"><div class="score-bar" id="b-empathy" style="width:0%;background:#34d399"></div></div>
+              <div class="score-row"><span class="score-label">專業度</span><span class="score-dual"><span class="score-ai" id="s-prof">—</span><span class="score-sep">/</span><span class="score-self" id="ss-prof">—</span><span class="score-gap" id="g-prof"></span></span></div>
+              <div class="score-bar-wrap"><div class="score-bar" id="b-prof" style="width:0%;background:#60a5fa"></div></div>
+              <div class="score-row"><span class="score-label">情緒控管</span><span class="score-dual"><span class="score-ai" id="s-calm">—</span><span class="score-sep">/</span><span class="score-self" id="ss-calm">—</span><span class="score-gap" id="g-calm"></span></span></div>
+              <div class="score-bar-wrap"><div class="score-bar" id="b-calm" style="width:0%;background:#a78bfa"></div></div>
+              <div class="score-row"><span class="score-label">解決方向</span><span class="score-dual"><span class="score-ai" id="s-sol">—</span><span class="score-sep">/</span><span class="score-self" id="ss-sol">—</span><span class="score-gap" id="g-sol"></span></span></div>
+              <div class="score-bar-wrap"><div class="score-bar" id="b-sol" style="width:0%;background:#fbbf24"></div></div>
+              <div id="result-card-wrap"></div>
+              <div id="feedback-text" style="font-size:14px;line-height:1.7;color:#cbd5e1;margin-top:6px"></div>
+              <div id="save-status"></div>
+              <button id="show-card-btn" class="growth-card-trigger">📇 產生成長卡</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let CASES = {};
+let PERSONAS = {};
+let AVATARS = {};
+let currentAvatarKey = '';
+let currentCase = null;
+let currentPersona = null;
+let currentPatient = null;
+let pharmacistName = "";
+let emotionLevel = 3;
+let emotionScore = 50;      // 情緒分數 0-100，作為 Level 的底層連續值
+let startEmotionLevel = 3;
+let conversationHistory = [];
+let isLoading = false;
+let turnCount = 0;
+let sessionEnded = false;
+let lastScores = {};
+let lastEndStatus = '';
+let lastQueryType = null;
+let evidenceLog = [];
+let lastNewTrigger = null;
+let pendingRandomFlag = false;
+let selfScores = null;
+
+let casesReady = false;
+let nameSubmitted = false;
+
+const LEVELS = [
+  null,
+  { label:"Level 1 理性合作", color:"#34d399", width:20 },
+  { label:"Level 2 焦躁不安", color:"#fbbf24", width:40 },
+  { label:"Level 3 憤怒質疑", color:"#f87171", width:60 },
+  { label:"Level 4 情緒失控", color:"#ef4444", width:80 },
+  { label:"Level 5 衝突危機", color:"#b91c1c", width:100 }
+];
+
+// ── 教師登入邏輯 ──
+const teacherLoginLink = document.getElementById('teacher-login-link');
+const teacherModal     = document.getElementById('teacher-modal');
+const teacherInput     = document.getElementById('teacher-input');
+const teacherSubmit    = document.getElementById('teacher-submit');
+const teacherError     = document.getElementById('teacher-error');
+const teacherBackLink  = document.getElementById('teacher-back-link');
+
+teacherLoginLink.addEventListener('click', () => {
+  document.getElementById('name-modal').style.display = 'none';
+  teacherModal.style.display = 'flex';
+  setTimeout(() => teacherInput.focus(), 50);
+});
+
+teacherBackLink.addEventListener('click', () => {
+  teacherModal.style.display = 'none';
+  document.getElementById('name-modal').style.display = 'flex';
+  teacherInput.value = '';
+  teacherError.textContent = '';
+  setTimeout(() => nameInput.focus(), 50);
+});
+
+teacherInput.addEventListener('input', () => {
+  teacherSubmit.disabled = teacherInput.value.trim().length === 0;
+  teacherError.textContent = '';
+});
+
+teacherInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !teacherSubmit.disabled) {
+    e.preventDefault();
+    teacherSubmit.click();
+  }
+});
+
+teacherSubmit.addEventListener('click', () => {
+  const id = teacherInput.value.trim();
+  if (!id) return;
+  teacherSubmit.disabled = true;
+  teacherError.textContent = '';
+  teacherError.style.color = '#94a3b8';
+  teacherError.textContent = '驗證中...';
+  callBackend('getTeacherDashboardUrl', [id])
+    .then(function(url) {
+      if (url) {
+        // 外部主機沒有 iframe 沙盒，直接開新分頁開啟後台
+        window.open(url, '_blank');
+        teacherError.style.color = '#86efac';
+        teacherError.textContent = '✓ 已開啟教師後台（新分頁）';
+        teacherSubmit.disabled = false;
+      } else {
+        teacherError.style.color = '#f87171';
+        teacherError.textContent = '員工代號無效';
+        teacherSubmit.disabled = false;
+      }
+    })
+    .catch(function(e) {
+      teacherError.style.color = '#f87171';
+      teacherError.textContent = '連線失敗，請重試';
+      teacherSubmit.disabled = false;
+    });
+});
+
+// ── 姓名 modal 邏輯 ──
+const nameInput  = document.getElementById('name-input');
+const nameSubmit = document.getElementById('name-submit');
+const nameError  = document.getElementById('name-error');
+const nameStatus = document.getElementById('name-status');
+
+nameInput.addEventListener('input', () => {
+  const v = nameInput.value.trim();
+  nameSubmit.disabled = v.length === 0;
+  nameError.textContent = '';
+});
+
+nameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !nameSubmit.disabled) {
+    e.preventDefault();
+    nameSubmit.click();
+  }
+});
+
+nameSubmit.addEventListener('click', () => {
+  const v = nameInput.value.trim();
+  if (!v) {
+    nameError.textContent = '請輸入姓名才能開始';
+    return;
+  }
+  pharmacistName = v;
+  nameSubmitted = true;
+  document.getElementById('pharmacist-tag').textContent = '藥師：' + pharmacistName;
+
+  if (casesReady) {
+    document.getElementById('name-modal').style.display = 'none';
+    loadCase(pickRandomCaseId());
+  } else {
+    nameStatus.textContent = '資料庫尚未載入完成，請稍候...';
+    nameSubmit.disabled = true;
+  }
+});
+
+// ── 初始化 ──
+window.onload = function() {
+  nameInput.focus();
+
+  let casesDone = false;
+  let personasDone = false;
+
+  function checkBothDone() {
+    if (casesDone && personasDone) {
+      casesReady = true;
+      nameStatus.textContent = '✓ 已就緒';
+
+      if (nameSubmitted) {
+        document.getElementById('name-modal').style.display = 'none';
+        loadCase(pickRandomCaseId());
+      }
+    }
+  }
+
+  callBackend('getScenariosFromCSV')
+    .then(function(data) {
+      if (data.error) { nameStatus.textContent = '❌ 案例載入失敗：' + data.error; return; }
+      CASES = data;
+      const select = document.getElementById('case-select');
+      Object.keys(CASES).sort().forEach(key => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = CASES[key].id + ' ' + CASES[key].title;
+        select.appendChild(opt);
+      });
+      casesDone = true;
+      checkBothDone();
+    })
+    .catch(function(e) { nameStatus.textContent = '❌ 案例連線失敗：' + e.message; });
+
+  callBackend('getPersonasFromCSV')
+    .then(function(data) {
+      if (data && !data.error) PERSONAS = data;
+      else { console.warn('人格表載入失敗'); PERSONAS = {}; }
+      personasDone = true;
+      checkBothDone();
+    })
+    .catch(function(e) {
+      console.warn('人格表連線失敗：' + e.message);
+      PERSONAS = {};
+      personasDone = true;
+      checkBothDone();
+    });
+
+  // 背景載入頭像圖庫（載入失敗不阻擋演練，會 fallback 到 emoji）
+  callBackend('getAvatarMap')
+    .then(function(data) {
+      if (data && !data.error) {
+        AVATARS = data;
+        console.log('頭像圖庫載入成功，共 ' + Object.keys(AVATARS).length + ' 張');
+      } else {
+        console.warn('頭像圖庫載入失敗：' + (data && data.error));
+      }
+    })
+    .catch(function(e) {
+      console.warn('頭像圖庫連線失敗：' + e.message);
+    });
+};
+
+// ============ 語音模組 (STT + TTS) ============
+// 多語言配置（未來擴充時只要在這邊加上一筆即可）
+// 關鍵字匹配採「case-insensitive 且順序即優先度」，排在前面的聲音品質越好
+const LANGUAGES = {
+  'zh-TW': {
+    label: '中文',
+    sttLang: 'zh-TW',
+    ttsLang: 'zh-TW',
+    // 女聲優先度：Google 國語（雲端最佳） > Yating（神經網路） > Hanhan（內建）
+    femaleVoiceKeywords: ['Google 國語', 'Yating', 'Hanhan', 'Hsiaochen', 'Mei-Jia', 'Meijia', 'female'],
+    // 男聲優先度：Zhiwei 是目前 Windows 11 唯一台灣男聲
+    maleVoiceKeywords:   ['Zhiwei', 'YunJhe', 'Yunjhe', 'male'],
+    // 只 fallback 到香港粵語（勉強可用），絕對不退到大陸普通話
+    fallbackLangs: ['zh-HK'],
+    placeholder: '輸入您的藥師回應...'
+  },
+  'en-US': {
+    label: 'English',
+    sttLang: 'en-US',
+    ttsLang: 'en-US',
+    maleVoiceKeywords:   ['Mark', 'David', 'Daniel', 'Tom', 'Alex', 'male'],
+    femaleVoiceKeywords: ['Zira', 'Samantha', 'Karen', 'Victoria', 'Jenny', 'female'],
+    fallbackLangs: ['en-GB', 'en'],
+    placeholder: 'Type or speak your response...'
+  }
+};
+let currentLang = 'zh-TW';
+let voiceEnabled = true;
+let speechRecognizer = null;
+let isRecording = false;
+let voicesCache = [];
+let currentUtterance = null;
+let currentAudio = null;          // Gemini TTS 的 HTMLAudioElement
+let ttsRequestSeq = 0;            // 序號：舊的 TTS 回來時若序號已過期就丟棄
+
+// ============ 後端 API ============
+// 把 Apps Script 部署網址貼到這裡（結尾一定是 /exec）
+// 更新部署版本後這個 URL 通常不會變
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbySypNUxQnRopruSfHdaLUC380jzNabeTUYpBW06-kAt7P9EHy3_7Fzm0ikTz9Q-ky4/exec';
+
+/**
+ * 呼叫 Apps Script 後端。回傳 Promise。
+ * 用法：callBackend('generatePatient', [caseData, personaData]).then(fn).catch(errFn)
+ *
+ * Content-Type 用 text/plain 是因為 Apps Script 不支援 CORS preflight (OPTIONS)。
+ * 這樣瀏覽器會當成「simple request」直接送 POST，不會先問。
+ */
+function callBackend(action, args) {
+  return fetch(BACKEND_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: action, args: args || [] }),
+    redirect: 'follow'
+  }).then(function(resp) {
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    return resp.json();
+  }).then(function(data) {
+    if (data.error) throw new Error(data.error);
+    return data.result;
+  });
+}
+
+// Chrome 的 getVoices() 非同步載入，監聽 voiceschanged 補抓
+function refreshVoicesCache() {
+  if (typeof speechSynthesis === 'undefined') return;
+  voicesCache = speechSynthesis.getVoices() || [];
+}
+if (typeof speechSynthesis !== 'undefined') {
+  refreshVoicesCache();
+  try { speechSynthesis.addEventListener('voiceschanged', refreshVoicesCache); } catch(e) {}
+}
+
+// 依病人性別 + 當前語言挑最合適的 SpeechSynthesisVoice
+// 關鍵字匹配不分大小寫；先找目標語言內最高優先度的聲音，找不到才退到 fallback
+function pickVoice(gender, lang) {
+  if (voicesCache.length === 0) refreshVoicesCache();
+  const cfg = LANGUAGES[lang] || LANGUAGES['zh-TW'];
+  const keywords = gender === '男' ? cfg.maleVoiceKeywords : cfg.femaleVoiceKeywords;
+  const matchName = (voice, kw) => voice.name.toLowerCase().indexOf(kw.toLowerCase()) >= 0;
+
+  // 先在目標語言內找關鍵字（照 keywords 順序，前面的優先）
+  const primary = voicesCache.filter(v => v.lang === cfg.ttsLang);
+  for (const kw of keywords) {
+    const match = primary.find(v => matchName(v, kw));
+    if (match) return match;
+  }
+  // 退而求其次：fallback 語言（絕不包含 zh-CN）
+  for (const fbLang of cfg.fallbackLangs) {
+    const fb = voicesCache.filter(v => v.lang === fbLang || v.lang.indexOf(fbLang + '-') === 0);
+    for (const kw of keywords) {
+      const match = fb.find(v => matchName(v, kw));
+      if (match) return match;
+    }
+    if (fb.length > 0) return fb[0];
+  }
+  // 最後保底：目標語言的第一個聲音（也排除 zh-CN）
+  return primary[0] || null;
+}
+
+// 情緒 Level × 性別 × 年齡 → voice params（rate / pitch / volume）
+function computeVoiceParams(level, gender, age) {
+  // 性別基礎音高（男聲偏低、女聲偏高）
+  const genderPitch = gender === '男' ? 0.85 : 1.25;
+  // 年齡微調：年輕聲音稍高、年長稍低
+  const ageBand = age < 45 ? 0.08 : age < 60 ? 0 : -0.08;
+  // 情緒 Level 1-5 對應參數
+  const emotionMap = {
+    1: { rateAdd: -0.10, pitchAdd: -0.05, volume: 0.75 },  // 平靜合作
+    2: { rateAdd:  0.00, pitchAdd:  0.00, volume: 0.82 },  // 焦躁不安
+    3: { rateAdd:  0.12, pitchAdd:  0.10, volume: 0.88 },  // 憤怒質疑
+    4: { rateAdd:  0.28, pitchAdd:  0.22, volume: 0.95 },  // 情緒失控
+    5: { rateAdd:  0.42, pitchAdd:  0.35, volume: 1.00 }   // 衝突危機
+  };
+  const em = emotionMap[level] || emotionMap[3];
+  return {
+    rate:   Math.max(0.5, Math.min(2.0, 1.0 + em.rateAdd)),
+    pitch:  Math.max(0.5, Math.min(2.0, genderPitch + ageBand + em.pitchAdd)),
+    volume: em.volume
+  };
+}
+
+// 過濾 TTS 不該唸出來的內容（動作描述括號、HTML 標籤）
+function sanitizeForTTS(text) {
+  if (!text) return '';
+  let s = String(text);
+  s = s.replace(/<[^>]*>/g, ' ');                            // HTML 標籤
+  s = s.replace(/[（(][^）)]{0,80}[）)]/g, ' ');              // 圓括號動作描述
+  s = s.replace(/[\[【][^\]】]{0,80}[\]】]/g, ' ');           // 方括號動作描述
+  s = s.replace(/&nbsp;|&amp;|&lt;|&gt;/g, ' ');
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+}
+
+// 停掉所有語音（Web Speech API 的 utterance + Gemini 的 Audio）
+function stopAllSpeech() {
+  try { speechSynthesis.cancel(); } catch(e) {}
+  if (currentAudio) {
+    try {
+      currentAudio.pause();
+      currentAudio.src = '';
+    } catch(e) {}
+    currentAudio = null;
+  }
+  const chip = document.getElementById('voice-toggle-btn');
+  if (chip) chip.classList.remove('speaking');
+}
+
+// base64 PCM → WAV ArrayBuffer（Gemini 回來的是裸 PCM，瀏覽器不能直接播）
+function pcmToWav(pcmBytes, sampleRate) {
+  const dataSize = pcmBytes.length;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const writeStr = (offset, str) => {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  };
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);           // fmt chunk size
+  view.setUint16(20, 1, true);            // PCM format
+  view.setUint16(22, 1, true);            // mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true); // byte rate = sampleRate * channels * bytesPerSample
+  view.setUint16(32, 2, true);            // block align
+  view.setUint16(34, 16, true);           // bits per sample
+  writeStr(36, 'data');
+  view.setUint32(40, dataSize, true);
+  new Uint8Array(buffer, 44).set(pcmBytes);
+  return buffer;
+}
+
+// 播放 Gemini 回傳的 base64 PCM
+function playGeminiAudio(base64Pcm, mimeType, chip) {
+  try {
+    let sampleRate = 24000;
+    const m = mimeType && mimeType.match(/rate=(\d+)/);
+    if (m) sampleRate = parseInt(m[1]);
+
+    const binStr = atob(base64Pcm);
+    const pcmBytes = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) pcmBytes[i] = binStr.charCodeAt(i);
+
+    const wav = pcmToWav(pcmBytes, sampleRate);
+    const blob = new Blob([wav], { type: 'audio/wav' });
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    currentAudio = audio;
+
+    const cleanup = () => {
+      URL.revokeObjectURL(url);
+      if (chip) chip.classList.remove('speaking');
+      if (currentAudio === audio) currentAudio = null;
+    };
+    audio.onended = cleanup;
+    audio.onerror = cleanup;
+
+    if (chip && voiceEnabled) chip.classList.add('speaking');
+    audio.play().catch(err => {
+      console.warn('[TTS] Audio play error:', err);
+      cleanup();
+    });
+  } catch(e) {
+    console.warn('[TTS] playGeminiAudio error:', e);
+    if (chip) chip.classList.remove('speaking');
+  }
+}
+
+// fallback: 用瀏覽器 Web Speech API（Gemini 失敗或超過 quota 時走這條）
+function speakPatientFallback(clean, gender, age) {
+  if (typeof speechSynthesis === 'undefined') return;
+  refreshVoicesCache();
+  if (voicesCache.length === 0) {
+    setTimeout(() => speakPatientFallback(clean, gender, age), 250);
+    return;
+  }
+
+  try { speechSynthesis.cancel(); } catch(e) {}
+  const params = computeVoiceParams(emotionLevel, gender, age);
+  const utter = new SpeechSynthesisUtterance(clean);
+  utter.lang   = LANGUAGES[currentLang].ttsLang;
+  utter.rate   = params.rate;
+  utter.pitch  = params.pitch;
+  utter.volume = params.volume;
+  const voice = pickVoice(gender, currentLang);
+  if (voice) utter.voice = voice;
+
+  const chip = document.getElementById('voice-toggle-btn');
+  utter.onstart = () => { if (chip && voiceEnabled) chip.classList.add('speaking'); };
+  utter.onend   = () => { if (chip) chip.classList.remove('speaking'); currentUtterance = null; };
+  utter.onerror = () => { if (chip) chip.classList.remove('speaking'); currentUtterance = null; };
+  currentUtterance = utter;
+  setTimeout(() => { try { speechSynthesis.speak(utter); } catch(e) {} }, 60);
+}
+
+// 播放病人語音（AI 回覆 + opening 都走這個）
+// 優先用 Gemini TTS 的情緒演技語音；失敗就 fallback 到 Web Speech API
+function speakPatient(rawText) {
+  if (!voiceEnabled) return;
+  const clean = sanitizeForTTS(rawText);
+  if (!clean) return;
+
+  // 停掉上一句任何還在播的聲音
+  stopAllSpeech();
+
+  // 判斷性別與年齡
+  const rawGender = (currentPatient && currentPatient.gender) || '';
+  const isMale = rawGender.indexOf('男') >= 0
+              || rawGender.toLowerCase().indexOf('male') >= 0
+              || rawGender.toLowerCase() === 'm';
+  const gender = isMale ? '男' : '女';
+  const age    = (currentPatient && currentPatient.age) || 50;
+
+  // 英文語系目前仍用 Web Speech API（Gemini TTS prompt 是中文指令，對 EN 內容會怪）
+  if (currentLang !== 'zh-TW') {
+    speakPatientFallback(clean, gender, age);
+    return;
+  }
+
+  // 顯示合成中的視覺指示（約 0.5-1.5 秒的延遲，chip 會呼吸）
+  const chip = document.getElementById('voice-toggle-btn');
+  if (chip && voiceEnabled) chip.classList.add('speaking');
+
+  // 序號：若使用者快速連點或切案例，舊的 TTS 回來時就丟棄
+  const mySeq = ++ttsRequestSeq;
+  console.log('[TTS] 送出 Gemini 合成請求', { seq: mySeq, gender, age, L: emotionLevel, text: clean.substring(0, 20) + '...' });
+
+  callBackend('callGeminiTTS', [clean, emotionLevel, gender, age])
+    .then(function(result) {
+      if (mySeq !== ttsRequestSeq) {
+        console.log('[TTS] 丟棄過期的回應 seq=' + mySeq);
+        return;
+      }
+      if (result && result.success && result.audio) {
+        console.log('[TTS] Gemini 成功 voice=' + result.voiceName);
+        playGeminiAudio(result.audio, result.mimeType, chip);
+      } else {
+        console.warn('[TTS] Gemini 失敗，退回 Web Speech API:', result && result.error);
+        if (chip) chip.classList.remove('speaking');
+        speakPatientFallback(clean, gender, age);
+      }
+    })
+    .catch(function(err) {
+      if (mySeq !== ttsRequestSeq) return;
+      console.warn('[TTS] 後端呼叫失敗，退回 Web Speech API:', err.message);
+      if (chip) chip.classList.remove('speaking');
+      speakPatientFallback(clean, gender, age);
+    });
+}
+
+// 初始化語音辨識（lazy，只在使用者第一次按麥克風時建立）
+function initSpeechRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  const recog = new SR();
+  recog.lang = LANGUAGES[currentLang].sttLang;
+  recog.interimResults = true;
+  recog.continuous = false;
+  recog.maxAlternatives = 1;
+
+  const input  = document.getElementById('user-input');
+  const micBtn = document.getElementById('mic-btn');
+  let baseValue = '';
+  let finalBuf  = '';
+
+  recog.onstart = () => {
+    isRecording = true;
+    if (micBtn) { micBtn.classList.add('recording'); micBtn.textContent = '🔴'; }
+    baseValue = input.value;
+    finalBuf = '';
+  };
+
+  recog.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const transcript = e.results[i][0].transcript;
+      if (e.results[i].isFinal) finalBuf += transcript;
+      else interim += transcript;
+    }
+    // 在輸入框原有文字後附加（讓學員可以語音接續補充）
+    input.value = baseValue + finalBuf + interim;
+  };
+
+  recog.onerror = (e) => {
+    console.warn('SpeechRecognition error:', e.error);
+    isRecording = false;
+    if (micBtn) { micBtn.classList.remove('recording'); micBtn.textContent = '🎤'; }
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      alert('無法使用麥克風。請在瀏覽器網址列允許麥克風權限，再試一次。');
+    } else if (e.error === 'no-speech') {
+      // 沒聽到聲音，不彈窗，靜默結束
+    }
+  };
+
+  recog.onend = () => {
+    isRecording = false;
+    if (micBtn) { micBtn.classList.remove('recording'); micBtn.textContent = '🎤'; }
+  };
+
+  return recog;
+}
+
+function toggleRecording() {
+  if (sessionEnded || isLoading) return;
+  if (!speechRecognizer) {
+    speechRecognizer = initSpeechRecognition();
+    if (!speechRecognizer) {
+      alert('此瀏覽器不支援語音辨識，請改用 Chrome。');
+      return;
+    }
+  }
+
+  if (isRecording) {
+    try { speechRecognizer.stop(); } catch(e) {}
+  } else {
+    // 按下麥克風 → 打斷 AI 語音（但文字保留）
+    stopAllSpeech();
+    ttsRequestSeq++;  // 作廢任何還在合成中的 Gemini TTS
+    const chip = document.getElementById('voice-toggle-btn');
+    if (chip) chip.classList.remove('speaking');
+    // 用當前語言重新設定
+    speechRecognizer.lang = LANGUAGES[currentLang].sttLang;
+    try {
+      speechRecognizer.start();
+      const input = document.getElementById('user-input');
+      if (input) input.focus();
+    } catch(e) {
+      console.warn('SR start error:', e);
+      isRecording = false;
+    }
+  }
+}
+
+function switchLanguage() {
+  const langs = Object.keys(LANGUAGES);
+  const idx = langs.indexOf(currentLang);
+  currentLang = langs[(idx + 1) % langs.length];
+  if (speechRecognizer) speechRecognizer.lang = LANGUAGES[currentLang].sttLang;
+  const langBtn = document.getElementById('lang-btn');
+  if (langBtn) langBtn.textContent = '🌐 ' + LANGUAGES[currentLang].label;
+  const input = document.getElementById('user-input');
+  if (input) input.placeholder = LANGUAGES[currentLang].placeholder;
+}
+
+function toggleVoiceOutput() {
+  voiceEnabled = !voiceEnabled;
+  if (!voiceEnabled) {
+    stopAllSpeech();
+    ttsRequestSeq++;
+  }
+  const btn = document.getElementById('voice-toggle-btn');
+  if (btn) {
+    btn.textContent = voiceEnabled ? '🔊 病人語音' : '🔇 病人語音';
+    btn.classList.toggle('off', !voiceEnabled);
+    btn.title = voiceEnabled ? '關閉病人語音' : '開啟病人語音';
+  }
+}
+
+function getTime() {
+  const d = new Date();
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
+
+function addMessage(role, text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  const time = getTime();
+  if (role === 'patient') {
+    // 依當下 emotionLevel 挑對應表情的頭像，找不到就用「病」字 fallback
+    const url = getAvatarUrl(currentAvatarKey, emotionLevel);
+    const avatarHtml = url
+      ? `<div class="avatar p has-img" style="background-image:url('${url}')"></div>`
+      : `<div class="avatar p">病</div>`;
+    div.innerHTML = `${avatarHtml}<div><div class="bubble">${text}</div><div class="msg-time">${time}</div></div>`;
+  } else {
+    div.innerHTML = `<div class="avatar s">藥</div><div><div class="bubble">${text}</div><div class="msg-time" style="text-align:right">${time}</div></div>`;
+  }
+  msgs.appendChild(div);
+  setTimeout(() => msgs.scrollTop = msgs.scrollHeight, 50);
+  return div;
+}
+
+function addSystemMessage(text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg system';
+  div.innerHTML = `<div class="bubble system-bubble">${text}</div>`;
+  msgs.appendChild(div);
+  setTimeout(() => msgs.scrollTop = msgs.scrollHeight, 50);
+}
+
+// 策略提示：不會發送給病人，只是給學員的教練提示
+function showStrategyHint(hint) {
+  if (!currentCase || sessionEnded) return;
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg system';
+  const content = hint.example
+    ? `<span class="hint-label">💡 策略提示：${hint.label}</span><span class="hint-example">參考話術：${hint.example}</span>`
+    : `<span class="hint-label">💡 策略提示：${hint.label}</span>`;
+  div.innerHTML = `<div class="bubble hint-bubble">${content}</div>`;
+  msgs.appendChild(div);
+  setTimeout(() => msgs.scrollTop = msgs.scrollHeight, 50);
+  // 記錄到對話歷史（教師端可看到學員按過哪些策略），但不會傳給 AI 病人
+  conversationHistory.push({ role: 'strategy_hint', content: '[策略提示：' + hint.label + ']' });
+  document.getElementById('user-input').focus();
+}
+
+function updateEmotionBar() {
+  // 分數 → Level 換算（1-20=L1, 21-40=L2, 41-60=L3, 61-80=L4, 81-100=L5）
+  const level = Math.max(1, Math.min(5, Math.ceil(emotionScore / 20) || 1));
+  emotionLevel = level;
+  const l = LEVELS[level];
+  document.getElementById('emotion-fill').style.width = emotionScore + '%';
+  document.getElementById('emotion-fill').style.background = l.color;
+  document.getElementById('emotion-text').textContent = l.label;
+  document.getElementById('emotion-text').style.color = l.color;
+  updatePatientAvatar();  // 情緒變化時同步更新頭像表情
+}
+
+// 根據年齡、性別決定基礎頭像 key（不含情緒）
+function computeAvatarBaseKey(age, gender) {
+  var ageBand = age < 45 ? 'young' : age < 60 ? 'mid' : 'senior';
+  var genderKey = gender === '男' ? 'm' : 'f';
+  var variant = Math.random() < 0.5 ? 1 : 2;  // 隨機挑變體 1 或 2
+  return ageBand + '_' + genderKey + '_' + variant;
+}
+
+// 根據情緒 Level 對應到 calm/tense/angry 表情
+function getAvatarUrl(baseKey, level) {
+  if (!baseKey || !AVATARS) return '';
+  var emotion = level <= 2 ? 'calm' : level === 3 ? 'tense' : 'angry';
+  var key = baseKey + '_' + emotion;
+  return AVATARS[key] || AVATARS[baseKey + '_tense'] || '';  // fallback 到 tense
+}
+
+// 更新右側病人資訊區的頭像
+function updatePatientAvatar() {
+  var img = document.getElementById('patient-avatar-img');
+  var emojiSpan = document.getElementById('patient-icon');
+  if (img) {
+    var url = getAvatarUrl(currentAvatarKey, emotionLevel);
+    if (url) {
+      img.src = url;
+      img.style.display = 'block';
+      if (emojiSpan) emojiSpan.style.display = 'none';
+    } else {
+      img.style.display = 'none';
+      if (emojiSpan) emojiSpan.style.display = 'block';
+    }
+  }
+  updateHeroAvatar();
+}
+
+// 更新 hero 大頭像（演練中顯示），情緒切換時淡出淡入
+function updateHeroAvatar() {
+  var img = document.getElementById('hero-avatar-img');
+  var fallback = document.getElementById('hero-avatar-fallback');
+  if (!img) return;
+  var url = getAvatarUrl(currentAvatarKey, emotionLevel);
+  if (!url) {
+    img.style.display = 'none';
+    if (fallback) fallback.style.display = 'flex';
+    return;
+  }
+  // 已有顯示的圖片且要換 → 淡出換圖再淡入
+  var showingImg = img.style.display !== 'none' && img.src;
+  if (showingImg && img.src !== url) {
+    img.classList.add('fading');
+    setTimeout(function() {
+      img.src = url;
+      img.classList.remove('fading');
+    }, 200);
+  } else {
+    // 首次載入或恢復顯示
+    img.src = url;
+    img.style.display = 'block';
+    if (fallback) fallback.style.display = 'none';
+  }
+}
+
+// ── 站外查詢處理 ──
+function handleInquiry(type) {
+  if (!currentCase || sessionEnded) return;
+  if (lastQueryType === type) return;
+  lastQueryType = type;
+
+  // 更新分頁按鈕的 active 狀態
+  document.querySelectorAll('.folder-tab').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector('.folder-tab[data-type="' + type + '"]');
+  if (btn) btn.classList.add('active');
+
+  let label = '', content = '';
+  switch(type) {
+    case 'pharmacist': label = '🧑‍⚕️ 內部藥師'; content = currentCase.inquiry_pharmacist; break;
+    case 'doctor':     label = '🩺 診間醫師';   content = currentCase.inquiry_doctor; break;
+    case 'system':     label = '💻 調劑系統';   content = currentCase.inquiry_system; break;
+  }
+  if (!content) content = '（我這邊沒有相關資訊）';
+
+  const fullText = `<span class="site-label">${label}：</span>${content}`;
+  addSystemMessage(fullText);
+  conversationHistory.push({ role: 'system_query', content: label + '：' + content });
+}
+
+document.querySelectorAll('.folder-tab').forEach(btn => {
+  btn.addEventListener('click', () => handleInquiry(btn.dataset.type));
+});
+
+function setInquiryEnabled(enabled) {
+  document.querySelectorAll('.folder-tab').forEach(btn => { btn.disabled = !enabled; });
+}
+
+function loadCase(caseId, overridePersonaCode) {
+  const c = CASES[caseId];
+  if (!c) return;
+  currentCase = c;
+  // 同步更新頂部下拉選單顯示值（避免下拉與實際載入的案例錯位）
+  const selectEl = document.getElementById('case-select');
+  if (selectEl && selectEl.value !== caseId) selectEl.value = caseId;
+  const personaCode = overridePersonaCode || c.personality;
+  currentPersona = PERSONAS[personaCode] || null;
+  emotionLevel = c.initLevel;
+  emotionScore = c.initLevel * 20 - 10;  // Level 3 → 50, Level 4 → 70, Level 5 → 90
+  startEmotionLevel = c.initLevel;
+  conversationHistory = [];
+  turnCount = 0;
+  sessionEnded = false;
+  lastScores = {};
+  lastQueryType = null;
+  evidenceLog = [];
+  lastNewTrigger = null;
+
+  document.getElementById('messages').innerHTML = '';
+  document.getElementById('user-input').disabled = true;
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('mic-btn').disabled = true;
+  // 載入新案例前先停掉上一段 TTS，避免跟新 opening 重疊
+  stopAllSpeech();
+  ttsRequestSeq++;
+  setInquiryEnabled(false);
+  document.querySelectorAll('.folder-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('secret-info').classList.add('locked');
+  document.getElementById('right-content').classList.remove('ended');
+  document.getElementById('analysis-section').classList.remove('show');
+  document.getElementById('result-card-wrap').innerHTML = '';
+  document.getElementById('feedback-text').textContent = '';
+  document.getElementById('save-status').textContent = '';
+  document.getElementById('show-card-btn').classList.remove('show');
+  document.getElementById('patient-profile').style.display = 'none';
+
+  const personaName = currentPersona ? currentPersona.name : c.personality;
+  document.getElementById('case-sub').textContent = personaName + ' · 初始 Level ' + c.initLevel;
+  document.getElementById('cat-text').textContent = c.cat;
+  document.getElementById('goal-text').textContent = c.goal;
+  document.getElementById('fatal-text').textContent = c.fatal;
+  updateEmotionBar();
+
+  const hintRow = document.getElementById('hint-row');
+  hintRow.innerHTML = '';
+  (c.hints || []).forEach(h => {
+    const btn = document.createElement('button');
+    btn.className = 'hint-btn';
+    btn.textContent = h.label;
+    btn.onclick = () => showStrategyHint(h);
+    hintRow.appendChild(btn);
+  });
+
+  const overlay = document.getElementById('loading-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('loading-text').textContent = '🚶 下一位病人正走向發藥櫃檯...';
+  document.getElementById('loading-sub').textContent = 'AI 正在生成病患背景，請稍候';
+
+  callBackend('generatePatient', [c, currentPersona])
+    .then(function(p) {
+      currentPatient = p;
+      overlay.style.display = 'none';
+
+      const profile = document.getElementById('patient-profile');
+      profile.style.display = 'flex';
+      // 決定該病人的頭像變體（隨機挑 1 或 2），並根據當前情緒顯示對應表情
+      currentAvatarKey = computeAvatarBaseKey(p.age, p.gender);
+      updatePatientAvatar();
+
+      document.getElementById('p-desc').textContent = p.age + '歲｜' + p.gender;
+      document.getElementById('p-job').textContent = p.job;
+      document.getElementById('p-trait').textContent = p.appearance;
+
+      if (pendingRandomFlag) {
+        const noticeText = '🎲 已隨機切換病人類型';
+        addSystemMessage(noticeText);
+        conversationHistory.push({ role: 'random_notice', content: noticeText });
+        pendingRandomFlag = false;
+      }
+
+      if (currentCase.hidden && currentCase.hidden.trim()) {
+        const infoText = '📋 <span class="site-label">站外資訊：</span>' + currentCase.hidden;
+        addSystemMessage(infoText);
+        conversationHistory.push({ role: 'site_info', content: '📋 站外資訊：' + currentCase.hidden });
+      }
+
+      addMessage('patient', p.opening);
+      speakPatient(p.opening);
+      conversationHistory.push({ role:'patient_opening', content: p.opening, meta: '[病患設定] ' + p.age + '歲' + p.gender + '，' + p.job + '，' + p.appearance });
+      document.getElementById('user-input').disabled = false;
+      document.getElementById('send-btn').disabled = false;
+      document.getElementById('mic-btn').disabled = false;
+      setInquiryEnabled(true);
+      document.getElementById('user-input').focus();
+    })
+    .catch(function() {
+      document.getElementById('loading-text').textContent = '⚠️ 病患生成失敗，請重置重試';
+    });
+}
+
+function sendMessage() {
+  if (isLoading || sessionEnded) return;
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
+  // 送出前若還在錄音，先停掉；若 AI 還在講，也停掉
+  if (isRecording && speechRecognizer) { try { speechRecognizer.stop(); } catch(e) {} }
+  stopAllSpeech();
+  ttsRequestSeq++;
+  input.value = '';
+  input.disabled = true;
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('mic-btn').disabled = true;
+  isLoading = true;
+  turnCount++;
+  lastQueryType = null;
+  document.querySelectorAll('.folder-tab').forEach(b => b.classList.remove('active'));
+
+  addMessage('student', text);
+  conversationHistory.push({ role:'student', content: text });
+  const loadingDiv = addMessage('patient', '<span class="loading-dots"></span>');
+
+  let personaSection = '';
+  if (currentPersona && currentPersona.name) {
+    personaSection = `\n【病人人格：${currentPersona.name}】`;
+    if (currentPersona.core_belief)    personaSection += `\n核心信念：${currentPersona.core_belief}`;
+    if (currentPersona.tone)           personaSection += `\n口氣特徵：${currentPersona.tone}`;
+    if (currentPersona.conflict_style) personaSection += `\n典型衝突行為：${currentPersona.conflict_style}`;
+    if (currentPersona.soften_cond)    personaSection += `\n軟化條件：${currentPersona.soften_cond}`;
+    personaSection += `\n\n【情境隔離鐵則】
+1. 人格類型只影響你的說話風格、口氣、情緒表達方式（例如比較別人、質疑效率、發洩情緒），不影響你抱怨的主題。
+2. 你的抱怨主題必須嚴格貼合當前情境「${currentCase.title}」（${currentCase.cat}），絕對不要引入其他案例的場景（例如當前是等候壓力，不要抱怨磨粉分裝、換廠牌、副作用、藥品外觀差異等其他案例的內容）。
+3. 【話題焦點鎖定】你的關注點必須始終鎖定在當前案例的 Primary Need 上。即使藥師的解釋觸及其他醫療領域（例如提到腎功能、藥物調整、劑量、副作用、藥品差異），你也不會因此改變話題主軸，只會關注這些新資訊對 Primary Need 的影響。
+   例如：SP-001 等候壓力中，藥師提到「因腎功能較低需調整用藥」，你不會問「腎功能是什麼？我是不是要洗腎？」也不會問「藥會不會吃錯？」而是問「所以還要等多久？」你的關注永遠在「什麼時候能拿到藥、能不能快點結束」。
+4. 你不會憑空編造自己的病史（例如「每次都有抽血」「上次醫生說我感冒」「以前吃這個都沒事」），只根據對話當下藥師實際提供的資訊來反應。`;
+  }
+
+  let triggerSection = '';
+  if (currentCase.escalate || currentCase.deescalate) {
+    triggerSection = `\n【本輪決策流程】
+
+請嚴格按以下順序判斷，不要跳過任何一步。你必須先完成 Step 1 到 3，才能決定 Step 4 的 emotion_delta。
+
+═══ Step 1：更新病人狀態 ═══
+
+對照上一輪與本輪對話，推論病人目前的四個狀態維度（這些會寫入 JSON）：
+
+Primary Need（主要需求）
+- 病人心中最想解決的核心關注，會隨對話推進轉換
+- 等待類：初期「感受到有人在處理」→ 得到答覆後「知道何時完成」→ 拿到藥「藥是否正確」→ 衛教「怎麼吃、注意事項」
+- 一旦轉換到新的 Need，不會再回到舊的抱怨
+
+Need Satisfaction（需求滿足度 0-100）
+- 0 = 完全被忽視、50 = 部分感受到進展、100 = 完全滿足此階段的需求
+
+Trust Level（信任程度 low / medium / high）
+- 累積條件：真誠同理、承擔責任、具體方案、更新進度、履行承諾、Service Recovery
+- 一旦累積到 medium 以上，不因單一小瑕疵重回 low
+
+Progress Perceived（是否感受到事情推進 true / false）
+- 只要藥師展現任何具體推進行為就是 true：主動聯絡醫師、追蹤醫師、前往診間、重新調劑、開始領藥、主動更新進度、承諾持續追蹤、誠實說明「已行動但尚未完成」
+
+═══ Step 2：判斷本輪是否有 New Trigger（新的負面事件）═══
+
+Escalation 必須來自新的負面事件，不能因同一件事情重複升溫。
+
+只有以下情況算「新事件」：
+- 新的失誤（上一輪沒發生的問題）、新的等待（承諾五分鐘卻超過）、新的不尊重、承諾沒做到、新的推卸行為
+
+同一事件包裝成新抱怨【嚴格禁止重複升溫】：
+- 「等太久」變「效率有問題」變「都沒人做事」→ 這是同一件事
+- 病人已表達過情緒且已獲得合理回應 → 相同事件不能再次升溫
+
+【Progress Lock 進展鎖定】
+一旦病人表達過承接性回應（「好，那我知道有人處理」「好，我等一下」「好，麻煩你確認」），病人的認知已更新，不得再次否定該事實。錯誤示範：
+- 上一輪「好，我知道有人處理」→ 本輪「你們是不是根本沒處理？」
+- 上一輪「好，我等一下」→ 本輪「到底有沒有人理我？」
+只有真正發生新事件才可重回前面的情緒。
+
+═══ Step 3：判斷本輪是否屬於正常醫療流程（Clinical Workflow Protection）═══
+
+以下事件屬於必要且正確的臨床流程，本身不得作為升溫理由：
+- 身分確認：姓名、生日、病歷號核對
+- 領藥流程：核對藥袋、藥品、處方
+- 用藥衛教：劑量、次數、注意事項、使用方式
+- 處方修改：回診間拿新處方、重新調劑、重新列印
+- 安全確認：藥品交付前的任何核對
+
+只有藥師態度不佳、明顯重複多次確認、或過程中發生新失誤時，才可造成不悅。
+
+═══ Step 4：判定 Dominant Effect（本輪主要效果）═══
+
+基於 Step 1-3 的分析選擇本輪效果：
+
+Recovery 成功安撫（emotion_delta -10 到 -15）
+- 藥師展現 Service Recovery：主動替病人跑診間、追醫師、更新資訊、代勞病人原本要自己做的事
+- Primary Need 明顯被滿足
+- Trust 明顯上升
+
+Stabilize 穩定情緒（emotion_delta -3 到 -5）
+- Progress Perceived = true（有具體推進行為）
+- 藥師態度誠懇、有回應問題
+- 病人感受到事情往前走，即使還沒完成
+
+Neutral 情緒維持（emotion_delta 0）
+- 藥師依 SOP 執行（身分確認、衛教等正常流程），Step 3 認定為合理流程
+- 持續對話但沒有明顯變化
+
+Escalation 情緒升高（emotion_delta +10 到 +20）
+- Step 2 判定確實有新的負面事件
+- 藥師推卸、爭辯、冷漠、敷衍（< 5 字或無實質內容）
+- 明顯忽略 Primary Need
+- 重大失誤或踩致命失誤：emotion_delta +25 以上
+
+═══ Step 5：輸出決策 ═══
+
+將 Step 1-4 的結果寫入 JSON 對應欄位。
+Evidence 用「藥師做了什麼 → 病人心理產生什麼變化」的因果格式，不使用「沒有做到⋯」「沒有提到⋯」等挑錯句型。
+
+【嚴格禁止的升溫理由】
+- 「沒有提供精確等待時間」→ 客觀上就是不知道，只要有進展就足夠
+- 「沒有提供替代方案」→ Active Helping 本身就是行動方案
+- 「沒有立即解決問題」→ 第一輪本來就不可能立即解決
+- 「問題尚未完成」→ 尚未完成不代表沒進展
+- 醫療 SOP 本身（身分確認、衛教、重新確認等）
+只有病人真正感受到「沒有人處理、沒有任何進展、被放著等待、沒有後續安排」時才可升高情緒。`;
+    if (currentCase.deescalate) triggerSection += `\n\n【本案例特別有效的安撫行為】\n${currentCase.deescalate}\n（參考清單，不代表沒做到就會升溫）`;
+    if (currentCase.escalate)   triggerSection += `\n\n【本案例特別容易激怒的行為】\n${currentCase.escalate}\n（藥師若命中這些行為才會顯著升溫）`;
+    if (currentCase.sopFlow)    triggerSection += `\n\n【本院正確處理 SOP】\n${currentCase.sopFlow}\n
+藥師若命中 SOP 中的某一步驟（例如電聯醫師、代跑診間、雙人覆核、三讀五對、用藥衛教等），應視為專業行為，情緒判定上可算入 Stabilize 或 Recovery（讓病人感受到藥師在依標準流程協助），這與安撫情緒同樣有效。
+藥師若沒做到某步驟，不主動升溫（除非該步驟屬於致命失誤或明顯忽略核心需求）。
+病人不會挑剔藥師是否走完所有 SOP，只會關注 Primary Need 是否被滿足。`;
+    triggerSection += `
+
+【演練結束條件（end 欄位判定）】
+以下情況可將 end 設為 "success" 結束演練：
+- 藥師已完成藥品交付並進行用藥衛教（例如講完劑量、次數、注意事項），代表核心任務完成
+- 藥師已妥善處理病人的 Primary Need 且對話達到自然結尾
+即使病人情緒未完全恢復（例如仍有殘餘不滿），只要藥師完成本次任務，也應設為 "success" 結束。
+此時病人的最後對白可以帶有不滿情緒（例如「（不悅地拿了藥）好啦，我知道了，下次別再這樣。」「（勉強收下藥）算了，我走了。」等），但不再需要繼續對話。
+
+若藥師踩到致命失誤或明顯拒絕協助，end 設為 "fail"。
+其他情況 end 保持 false，繼續對話。
+
+【最重要原則】
+你扮演的是病人（Standardized Patient），不是 OSCE 評審。
+不要一邊扮演病人一邊在對話中檢查「藥師少做了哪些技巧」。
+病人的反應只能來自：自己的心理狀態、需求、信任、理解、情緒。
+讓病人像真人一樣可以修正認知、逐漸建立信任、慢慢願意合作。
+真正決定情緒的，是藥師是否讓病人感受到「有人理解我，並且正在幫助我解決問題」，而不是藥師是否逐項完成所有溝通技巧。
+
+【對白必須有內容】
+你的回應必須先寫出病人實際的對話（至少 5 個中文字或帶動作描述），才能附上 JSON。
+即使病人情緒複雜、不滿或想沉默，也要用文字或帶動作的方式表達出來，不可以只回 JSON 沒有對白。
+範例寫法：
+- 帶不滿情緒但仍要說話：「好啦好啦，我等就是了」「行行行，隨便你們」「這樣真的很煩」
+- 帶嘆氣或動作：「（嘆了口氣）算了，那你趕快處理」「（不耐煩地揮手）就這樣吧」
+- 表達困惑：「等等，你剛才說的是什麼意思？」
+絕對禁止只寫括號動作沒有話語（例如只寫「（沉默不語）」是不合格的），必須有病人實際的言語，即使只是嘟囔一句。`;
+  }
+
+  // 附加上一輪的 new_trigger 記錄（若有），讓 AI 判斷本輪是否為同一事件
+  if (lastNewTrigger) {
+    triggerSection += `\n\n【上一輪 new_trigger 記錄】\n上一輪認定的新負面事件是：「${lastNewTrigger}」。\n本輪判斷 new_trigger 時，若本輪情境仍是同一件事（例如「還在等」「還要跑腿」等），即使措辭換過，也應設為 null，不得再次升溫。\n只有本輪出現本質上不同的新事件時（例如藥師態度突然變差、新的失誤、承諾兌現失敗），才可再次填入 new_trigger 並升溫。`;
+  }
+
+  // 動態偵測本輪藥師語言，若英文主導則注入強制指令（每輪重新判斷，避免 AI 慣性拉回中文）
+  const enChars = (text.match(/[a-zA-Z]/g) || []).length;
+  const zhChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+  let languageOverride = '';
+  if (enChars > zhChars && enChars > 5) {
+    languageOverride = `\n\n【⚠️ 本輪語言強制指令，優先於所有其他規則】\n本輪藥師使用英文。你必須整段用英文回應這一輪。即使你的開場白或前幾輪是中文，這一輪也一定要切換為英文，不要中英夾雜。用道地口語英文表達人格情緒（焦躁催促、質疑防衛、比較勒索等），保持 2-4 句。`;
+  }
+
+  const systemPrompt = `你扮演藥局裡的病人，正在跟一位名為「${pharmacistName}」的藥師對話。
+
+【本系統教育目的】
+這是一個藥師溝通訓練系統，不是考倒學員的評審機制。
+病人的情緒變化應讓學員能夠理解「我的回答確實影響了病人的心理」。
+即使藥師的回答不是 100 分，只要病人感受到「有人理解自己、有人在協助、問題正在處理、知道下一步」，情緒至少應維持或逐步下降。
+避免因一般性溝通缺失就每一輪持續升高情緒，那會讓學員產生「怎麼回答都沒有用」的挫敗感，違背本系統的教育目的。
+${personaSection}
+
+【你的當下設定】
+- 姓名：${currentPatient.name || '（未指定）'}
+- ${currentPatient.age}歲${currentPatient.gender}，出生於 ${currentPatient.birth_year || '未指定'}年${currentPatient.birth_month || '?'}月${currentPatient.birth_day || '?'}日
+- 職業：${currentPatient.job}
+- 外觀：${currentPatient.appearance}
+- 情境：${currentCase.title}
+- 致命失誤（若藥師踩到請情緒爆發）：${currentCase.fatal}
+- 現在情緒等級：Level ${emotionLevel}（1=理性合作，3=憤怒質疑，5=衝突危機）
+${triggerSection}
+
+【嚴格規則】
+1. 你只扮演這一位病人，絕對不要替藥師回應,也不要描寫藥師的動作或表情
+2. 每次只回 2~4 句話,不要配旁白、不要編造背景音、不要重複藥師剛剛說過的話
+3. 不要編造其他病人、其他號碼、其他場景的對話內容
+4. 你只知道自己的處境與感受，不知道藥師端的系統資訊、內部流程、發藥系統顯示什麼、藥品調度狀態等；這些只能透過藥師告訴你才知道
+5. 說話風格須緊扣上方「口氣特徵」描述,口頭禪、句型偏好都要展現出來
+6. 情緒從緊張轉為緩和或對藥師產生信任時,可自然在話中稱呼他「${pharmacistName} 藥師」,但避免每句都稱呼
+7. 【語言鏡射鐵則，優先於本 prompt 任何其他規則】
+   - 藥師本輪用繁體中文 → 你用繁體中文回應
+   - 藥師本輪用英文 → 你立刻用英文回應，即使你的開場白或前幾輪是講中文也要切換
+   - 藥師本輪中英夾雜 → 你也中英夾雜
+   - 這個病人具備完整的中英文溝通能力，不會因為語言切換而困惑
+   - 切換語言時，人格的口氣特徵（例如焦躁催促、質疑防衛、比較勒索）要用當下語言對應的口語表達
+   - 絕對不要因為「我開場白講中文」或「前一輪講中文」就在藥師切換到英文後繼續用中文
+8. 你只能根據藥師「實際說出的字面內容」回應。不要腦補藥師的意圖、不要替他補完句子、不要在你的回應中引用「藥師沒真的說過的話」。若藥師的輸入太短（中文少於 5 字或英文少於 5 個 words）、看不懂、或是無意義字元組合，你要用當下的語言表達困惑或不耐（例如中文「你在說什麼？」「你是要跟我說什麼？」；英文「What do you mean?」「I don't get you.」），絕對不要假裝藥師說了完整的話再對它反擊
+
+【必附 JSON（給程式解析用，不是台詞的一部分）】
+你的病人對白結束後，緊接在同一行後方附上一個 JSON 物件供程式讀取。絕對不要把「同一行」「JSON」「必附」等指令用語寫進病人的對白裡。
+JSON 格式規則：
+- 數字不要帶正號（寫 20 不要寫 +20；寫 -15 沒問題）
+- 字串用小寫（false、success、fail，不要 False 或 True）
+- 用純英文冒號與逗號（不要中文的：或，）
+- 必須依決策流程順序輸出欄位：先寫五個狀態欄位（Step 1-3 的推論結果），再寫 emotion_delta（Step 4 的判定），最後寫 end 和 evidence
+
+各欄位定義：
+- primary_need：本輪病人的主要需求，短句描述（例如「感受到有人在處理」「知道還要多久」「確認藥物正確」「怎麼吃」）
+- need_satisfied：本輪 primary_need 的滿足度，0-100 整數
+- trust_level：本輪對藥師的信任程度，只能是 "low" / "medium" / "high" 三選一
+- progress_perceived：本輪病人是否感受到事情推進，只能是 true / false
+- new_trigger：本輪是否有新的負面事件（Step 2 判定）。沒有寫 null；有的話用短句描述新事件內容
+- emotion_delta：-30 到 30 整數（若 new_trigger 為 null，delta 不得為正值）
+- evidence：陣列，1 到 3 條「藥師做了什麼 → 病人心理產生什麼變化」的因果描述
+
+格式：
+{"primary_need": "…", "need_satisfied": 0-100, "trust_level": "low/medium/high", "progress_perceived": true/false, "new_trigger": null 或 "…", "emotion_delta": -30到30, "end": false或"success"或"fail", "evidence": ["…", "…"]}${languageOverride}`;
+
+  const msgs = [
+    { role: 'user', parts: [{ text: '（情境開始，請以病人口吻說出第一句話）' }] },
+    { role: 'model', parts: [{ text: currentPatient.opening }] }
+  ];
+
+  conversationHistory.forEach(h => {
+    if (h.role === 'student') {
+      msgs.push({ role: 'user', parts: [{ text: h.content }] });
+    } else if (h.role === 'patient_reply') {
+      msgs.push({ role: 'model', parts: [{ text: h.content }] });
+    }
+  });
+
+  callBackend('callGeminiBackend', [systemPrompt, JSON.stringify(msgs)])
+    .then(function(responseStr) {
+      try {
+        const data = JSON.parse(responseStr);
+        if (!data.candidates || !data.candidates[0]) {
+          const reason = data.error ? data.error.message : '配額或連線問題';
+          loadingDiv.querySelector('.bubble').textContent = '（API 回應失敗：' + reason + '）';
+          input.disabled = false;
+          document.getElementById('send-btn').disabled = false;
+          document.getElementById('mic-btn').disabled = false;
+          isLoading = false;
+          return;
+        }
+
+        const raw = data.candidates[0].content.parts[0].text;
+        let speech = raw, delta = 0, endStatus = false, evidence = [];
+        let stateFields = null;  // 新版狀態欄位（primary_need 等）
+
+        const m = raw.match(/\{[\s\S]*?"emotion_delta"[\s\S]*?\}/);
+        if (m) {
+          // 無論解析成功與否，先把 JSON 字串從對白中移除，避免露到病人氣泡
+          speech = raw.replace(m[0], '').trim();
+          try {
+            // 清理常見非標準寫法：+20 → 20
+            const cleanJson = m[0].replace(/:\s*\+(\d)/g, ': $1');
+            const parsed = JSON.parse(cleanJson);
+            delta = parsed.emotion_delta || 0;
+            endStatus = parsed.end || false;
+            evidence = Array.isArray(parsed.evidence) ? parsed.evidence : [];
+            // 讀取新版狀態欄位（若 AI 沒回傳這些欄位則保持 null）
+            if (parsed.primary_need || parsed.trust_level || 'progress_perceived' in parsed || 'new_trigger' in parsed) {
+              stateFields = {
+                primary_need:        parsed.primary_need || '',
+                need_satisfied:      parsed.need_satisfied != null ? parsed.need_satisfied : '',
+                trust_level:         parsed.trust_level || '',
+                progress_perceived:  parsed.progress_perceived,
+                new_trigger:         parsed.new_trigger
+              };
+              // 一致性檢查：若 new_trigger 為 null（無新事件）但 delta 為正值，強制歸零
+              // 這是 Step 2 New Trigger Principle 的程式端保險，防止 AI 沒真的照決策流程判斷
+              if ((parsed.new_trigger === null || parsed.new_trigger === undefined) && delta > 0) {
+                console.warn('無 new_trigger 但 delta=' + delta + '，強制歸零');
+                delta = 0;
+              }
+            }
+          } catch(e) {
+            // JSON.parse 失敗仍用 regex 抓數字備援
+            const deltaMatch = m[0].match(/"emotion_delta"\s*:\s*([+-]?\d+)/);
+            const endMatch   = m[0].match(/"end"\s*:\s*"?(false|success|fail)"?/);
+            if (deltaMatch) delta = parseInt(deltaMatch[1]) || 0;
+            if (endMatch)   endStatus = endMatch[1] === 'false' ? false : endMatch[1];
+            console.warn('JSON 解析用 regex 備援：delta=' + delta + ', end=' + endStatus);
+          }
+        } else {
+          speech = raw.trim();
+        }
+
+        // 記錄本輪證據，供教師端後台分析用
+        if (evidence.length || stateFields) {
+          let logLine = '[第' + turnCount + '輪 delta=' + delta;
+          if (stateFields) {
+            const trigger = (stateFields.new_trigger === null || stateFields.new_trigger === undefined) ? '無' : stateFields.new_trigger;
+            logLine += ' | need="' + stateFields.primary_need + '" 滿足=' + stateFields.need_satisfied +
+                       ' trust=' + stateFields.trust_level +
+                       ' progress=' + stateFields.progress_perceived +
+                       ' new_trigger=' + trigger;
+          }
+          logLine += '] ' + (evidence.join('；') || '（無 evidence）');
+          evidenceLog.push(logLine);
+        }
+
+        // 更新 lastNewTrigger（給下一輪 AI 判斷是否為同一事件）
+        if (stateFields) {
+          const trigger = stateFields.new_trigger;
+          if (trigger !== null && trigger !== undefined && trigger !== '') {
+            lastNewTrigger = trigger;
+          }
+          // trigger 為 null 時保留上一輪的 lastNewTrigger（避免完全失憶）
+        }
+
+        // 空對白保險：AI 若沒生成 speech，依當前情緒給情境化 fallback（讓對話流不會出現空氣泡或看起來像 bug）
+        if (!speech || speech.length === 0) {
+          const fallbacks = {
+            5: '（憤怒地雙手抱胸）我沒話說了。',
+            4: '（不滿地嘆氣）算了⋯',
+            3: '（皺眉沉默片刻）你們就是這樣。',
+            2: '（沉默地點頭）嗯。',
+            1: '好，我知道了。'
+          };
+          speech = fallbacks[emotionLevel] || '嗯⋯';
+          console.warn('AI 沒生成對白，使用情境化 fallback（emotionLevel=' + emotionLevel + '）');
+        }
+
+        loadingDiv.querySelector('.bubble').innerHTML = speech;
+        conversationHistory.push({ role:'patient_reply', content: speech });
+
+        emotionScore = Math.max(0, Math.min(100, emotionScore + delta));
+        updateEmotionBar();
+
+        // 情緒更新後才唸出來，TTS 參數才會對應到新 Level
+        speakPatient(speech);
+
+        if (endStatus && endStatus !== "false") {
+          sessionEnded = true;
+          setInquiryEnabled(false);
+          setTimeout(() => showAnalysis(endStatus), 600);
+        } else if (turnCount >= 5) {
+          sessionEnded = true;
+          setInquiryEnabled(false);
+          setTimeout(() => showAnalysis(emotionLevel <= 2 ? 'success' : 'ongoing'), 600);
+        } else {
+          input.disabled = false;
+          document.getElementById('send-btn').disabled = false;
+          document.getElementById('mic-btn').disabled = false;
+          input.focus();
+        }
+      } catch(e) {
+        loadingDiv.querySelector('.bubble').textContent = '（回應異常：' + e.message + '）';
+        input.disabled = false;
+        document.getElementById('send-btn').disabled = false;
+        document.getElementById('mic-btn').disabled = false;
+      }
+      isLoading = false;
+    })
+    .catch(function() {
+      loadingDiv.querySelector('.bubble').textContent = '（連線失敗，請重試）';
+      input.disabled = false;
+      document.getElementById('send-btn').disabled = false;
+      document.getElementById('mic-btn').disabled = false;
+      isLoading = false;
+    });
+}
+
+function showAnalysis(endStatus) {
+  document.getElementById('user-input').disabled = true;
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('mic-btn').disabled = true;
+  // 跳出自評 modal，強制學員先自評
+  document.getElementById('si-empathy').value = 50;
+  document.getElementById('si-prof').value = 50;
+  document.getElementById('si-calm').value = 50;
+  document.getElementById('si-sol').value = 50;
+  document.getElementById('sv-empathy').textContent = '50';
+  document.getElementById('sv-prof').textContent = '50';
+  document.getElementById('sv-calm').textContent = '50';
+  document.getElementById('sv-sol').textContent = '50';
+  document.getElementById('self-eval-modal').classList.add('show');
+  // 送出自評後才會呼叫 runAiAnalysis
+  document.getElementById('self-eval-submit').onclick = function() {
+    selfScores = {
+      empathy:             Number(document.getElementById('si-empathy').value),
+      professionalism:     Number(document.getElementById('si-prof').value),
+      emotionControl:      Number(document.getElementById('si-calm').value),
+      solutionOrientation: Number(document.getElementById('si-sol').value)
+    };
+    document.getElementById('self-eval-modal').classList.remove('show');
+    runAiAnalysis(endStatus);
+  };
+}
+
+// 滑桿即時顯示數值
+['empathy','prof','calm','sol'].forEach(k => {
+  const slider = document.getElementById('si-' + k);
+  const label  = document.getElementById('sv-' + k);
+  if (slider && label) {
+    slider.addEventListener('input', () => { label.textContent = slider.value; });
+  }
+});
+
+function runAiAnalysis(endStatus) {
+  document.getElementById('secret-info').classList.remove('locked');
+  document.getElementById('right-content').classList.add('ended');
+  document.getElementById('analysis-section').classList.add('show');
+
+  const historyText = conversationHistory.map(h => {
+    if (h.role === 'random_notice')   return h.content;
+    if (h.role === 'site_info')       return h.content;
+    if (h.role === 'strategy_hint')   return h.content;
+    if (h.role === 'patient_opening') return '[病人開場白] ' + h.content;
+    if (h.role === 'patient_reply')   return '[病人] ' + h.content;
+    if (h.role === 'student')         return '[藥師] ' + h.content;
+    if (h.role === 'system_query')    return '[站外查詢] ' + h.content;
+    return h.content;
+  }).join('\n');
+
+  const escalateSection   = currentCase.escalate   ? `\n【升溫觸發（藥師若命中代表溝通失敗行為，由輕到重排列）】\n${currentCase.escalate}` : '';
+  const deescalateSection = currentCase.deescalate ? `\n【降溫觸發（藥師若命中代表有效溝通行為，由輕到重排列）】\n${currentCase.deescalate}` : '';
+
+  const sopSection = currentCase.sopFlow
+    ? `\n\n【本院正確處理 SOP】\n${currentCase.sopFlow}`
+    : '';
+
+  const analysisPrompt = `你是資深藥學教育評審，請根據以下標準嚴謹評分。
+
+【本案例學習目標】
+${currentCase.goal}
+
+【本案例致命失誤】
+${currentCase.fatal}${sopSection}
+${escalateSection}${deescalateSection}
+
+【四維評分定義】
+- 同理心：藥師有無承認病人情緒、表達理解、使用同理語句
+- 專業度：藥師解釋是否正確、態度是否恰當、有無踩到致命失誤
+- 情緒控管：藥師自身情緒是否穩定、有無反擊或用不耐煩語氣
+- 解決方向:藥師是否提供具體行動、時間承諾、後續步驟
+
+【評分等距（0-100 整數）】
+- 90-100 優秀：多次命中降溫觸發，達成學習目標
+- 70-89  良好：命中部分降溫觸發，方向正確有小瑕疵
+- 50-69  中等：有嘗試但方式不夠精準
+- 30-49  待改進：未命中降溫觸發或偶有升溫行為
+- 0-29   不合格：明顯敷衍、命中升溫觸發、或踩致命失誤
+
+【硬性規則（優先於等距判斷）】
+1. 若藥師踩到致命失誤，專業度必須 ≤ 30
+2. 若藥師任一回合回應少於 5 個中文字或少於 5 個英文 words，或內容無實質意義（例：「嗯」「好」「wow」「what」「no idea」），視為敷衍，總體該維度 ≤ 30
+3. 若對話含 [站外查詢] 且藥師有將查到的資訊轉述給病人，專業度與解決方向加分
+4. [策略提示：xx] 是學員按下提示按鈕的痕跡，不是學員實際發話，評分僅依 [藥師] 標籤後的內容判斷；學員頻繁依賴提示按鈕但實際發話品質差時，仍應低分
+5. 無論對話使用中文、英文或中英夾雜，feedback 欄位一律以繁體中文撰寫，方便老師事後檢閱
+6. 若本案例有【本院正確處理 SOP】，藥師命中的步驟越多，專業度加分越多（每命中一步驟至少 +5）；沒做到某步驟不扣分（除非該步驟是致命失誤或直接關聯 Primary Need）。SOP 完成度可作為專業度分數的加權依據，但仍受規則 1 限制
+7. feedback 欄位的文字**絕對不可以**提到「SOP」、「步驟 N」、「流程」等學員看不到的內部評分依據；只能用「正確操作」「適當做法」「關鍵動作」等學員能理解的敘述，讓回饋以學員視角可讀
+
+僅回傳JSON，不含任何markdown：
+{"empathy":整數,"professionalism":整數,"emotion_control":整數,"solution_orientation":整數,"feedback":"具體中文回饋（須提及至少一個對話中的具體行為作為評分依據；禁止提到 SOP 或步驟編號）"}
+
+【對話記錄】
+${historyText}`;
+
+  callBackend('callGeminiBackend', ['', JSON.stringify([{ role:'user', parts:[{ text: analysisPrompt }] }])])
+    .then(function(responseStr) {
+      try {
+        const data = JSON.parse(responseStr);
+        if (!data.candidates || !data.candidates[0]) {
+          const reason = data.error ? data.error.message : (JSON.stringify(data).substring(0, 200));
+          throw new Error('Gemini API 未回傳結果，可能是超過免費配額。原因：' + reason);
+        }
+
+        let raw = data.candidates[0].content.parts[0].text;
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('Gemini 回傳內容找不到 JSON：' + raw.substring(0, 150));
+        const s = JSON.parse(jsonMatch[0]);
+        lastScores = s;
+
+        document.getElementById('s-empathy').textContent = s.empathy;
+        document.getElementById('s-prof').textContent    = s.professionalism;
+        document.getElementById('s-calm').textContent    = s.emotion_control;
+        document.getElementById('s-sol').textContent     = s.solution_orientation;
+        // 自評分數對照
+        if (selfScores) {
+          document.getElementById('ss-empathy').textContent = selfScores.empathy;
+          document.getElementById('ss-prof').textContent    = selfScores.professionalism;
+          document.getElementById('ss-calm').textContent    = selfScores.emotionControl;
+          document.getElementById('ss-sol').textContent     = selfScores.solutionOrientation;
+          // 落差箭頭：>30 分紅色警示
+          function renderGap(id, ai, self) {
+            const diff = self - ai;
+            const el = document.getElementById(id);
+            if (Math.abs(diff) < 5) { el.textContent = ''; el.className = 'score-gap'; return; }
+            const arrow = diff > 0 ? '▲' : '▼';
+            el.textContent = arrow + Math.abs(diff);
+            el.className = 'score-gap ' + (Math.abs(diff) >= 30 ? 'high' : 'low');
+          }
+          renderGap('g-empathy', s.empathy,             selfScores.empathy);
+          renderGap('g-prof',    s.professionalism,     selfScores.professionalism);
+          renderGap('g-calm',    s.emotion_control,     selfScores.emotionControl);
+          renderGap('g-sol',     s.solution_orientation,selfScores.solutionOrientation);
+        }
+        document.getElementById('b-empathy').style.width = s.empathy + '%';
+        document.getElementById('b-prof').style.width = s.professionalism + '%';
+        document.getElementById('b-calm').style.width = s.emotion_control + '%';
+        document.getElementById('b-sol').style.width = s.solution_orientation + '%';
+
+        let resClass = 'result-ongoing', resText = '📊 演練完成，表現尚可';
+        if (endStatus === 'success') { resClass = 'result-success'; resText = '✓ 通過 — 順利安撫病人完成導引'; }
+        else if (endStatus === 'fail' || endStatus === 'fatal_fail') { resClass = 'result-fail'; resText = '❌ 失敗 — 病人情緒失控演練中斷'; }
+        document.getElementById('result-card-wrap').innerHTML = `<div class="result-card ${resClass}">${resText}</div>`;
+        document.getElementById('feedback-text').textContent = s.feedback;
+
+        // 啟用「產生成長卡」按鈕，並記下當前資料
+        lastEndStatus = endStatus;
+        document.getElementById('show-card-btn').classList.add('show');
+
+        const saveStatus = document.getElementById('save-status');
+        saveStatus.textContent = '⏳ 正在儲存記錄...';
+        saveStatus.style.color = '#94a3b8';
+
+        callBackend('saveSessionToSheet', [{
+            caseId: currentCase.id,
+            caseTitle: currentCase.title,
+            caseCat: currentCase.cat,
+            personality: currentPersona ? currentPersona.name : currentCase.personality,
+            dialogue: historyText,
+            empathy: s.empathy,
+            professionalism: s.professionalism,
+            emotionControl: s.emotion_control,
+            solutionOrientation: s.solution_orientation,
+            result: endStatus,
+            feedback: s.feedback,
+            pharmacistName: pharmacistName,
+            turnCount: turnCount,
+            startEmotionLevel: startEmotionLevel,
+            endEmotionLevel: emotionLevel,
+            patientAge: currentPatient.age,
+            patientGender: currentPatient.gender,
+            patientJob: currentPatient.job,
+            selfEmpathy:             selfScores ? selfScores.empathy             : 0,
+            selfProfessionalism:     selfScores ? selfScores.professionalism     : 0,
+            selfEmotionControl:      selfScores ? selfScores.emotionControl      : 0,
+            selfSolutionOrientation: selfScores ? selfScores.solutionOrientation : 0,
+            evidenceLog:             evidenceLog.join('\n')
+          }])
+          .then(function(status) {
+            if (status === 'ok') {
+              saveStatus.textContent = '✓ 記錄已儲存至 Sheet';
+              saveStatus.style.color = '#34d399';
+            } else {
+              saveStatus.textContent = '⚠️ ' + status;
+              saveStatus.style.color = '#f87171';
+            }
+          })
+          .catch(function(e) {
+            saveStatus.textContent = '⚠️ 儲存連線失敗：' + (e.message || e);
+            saveStatus.style.color = '#f87171';
+          });
+
+      } catch(e) {
+        document.getElementById('feedback-text').textContent = '⚠️ 分析解析錯誤：' + e.message;
+        document.getElementById('save-status').textContent = '（因分析失敗，記錄未儲存）';
+        document.getElementById('save-status').style.color = '#f87171';
+      }
+    });
+}
+
+document.getElementById('send-btn').addEventListener('click', sendMessage);
+document.getElementById('user-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+document.getElementById('case-select').addEventListener('change', e => loadCase(e.target.value));
+document.getElementById('reset-btn').addEventListener('click', () => loadCase(document.getElementById('case-select').value));
+// 語音相關按鈕
+document.getElementById('mic-btn').addEventListener('click', toggleRecording);
+document.getElementById('voice-toggle-btn').addEventListener('click', toggleVoiceOutput);
+document.getElementById('lang-btn').addEventListener('click', switchLanguage);
+
+// ── 兩層隨機 helpers（支援 SP-003a/b/c 這種分支案例） ──
+function extractGroupId(caseId) {
+  if (!caseId) return '';
+  const m = caseId.match(/^(SP-\d+)/);
+  return m ? m[1] : caseId;
+}
+function pickRandomCaseId(excludeCaseId) {
+  const allCaseIds = Object.keys(CASES);
+  if (allCaseIds.length === 0) return '';
+  const groups = {};
+  allCaseIds.forEach(id => {
+    const g = extractGroupId(id);
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(id);
+  });
+  const groupKeys = Object.keys(groups).sort();
+  if (groupKeys.length === 0) return allCaseIds[0];
+  const excludeGroup = extractGroupId(excludeCaseId);
+  let groupCandidates = groupKeys.filter(g => g !== excludeGroup);
+  if (groupCandidates.length === 0) groupCandidates = groupKeys;
+  const chosenGroup = groupCandidates[Math.floor(Math.random() * groupCandidates.length)];
+  const branches = groups[chosenGroup];
+  return branches[Math.floor(Math.random() * branches.length)];
+}
+
+function randomPersona() {
+  const allCaseIds = Object.keys(CASES);
+  if (allCaseIds.length === 0) { alert('案例庫尚未載入或為空'); return; }
+
+  // 兩層隨機：先挑 group（SP-001~SP-007 各 1/7），再挑分支（SP-003a/b/c 均勻）
+  const currentCaseId = currentCase ? currentCase.id : '';
+  const randomCaseId = pickRandomCaseId(currentCaseId);
+
+  // 挑一個非該案例預設的人格
+  const allCodes = Object.keys(PERSONAS);
+  const newCase = CASES[randomCaseId];
+  const defaultCode = newCase.personality;
+  const personaCandidates = allCodes.filter(code => code !== defaultCode);
+  const randomCode = personaCandidates.length > 0
+    ? personaCandidates[Math.floor(Math.random() * personaCandidates.length)]
+    : defaultCode;
+
+  pendingRandomFlag = true;
+  loadCase(randomCaseId, randomCode);
+}
+document.getElementById('random-btn').addEventListener('click', randomPersona);
+
+// ── 成長卡顯示邏輯 ──
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function showGrowthCard() {
+  if (!lastScores || !currentCase || !currentPatient) return;
+
+  const now = new Date();
+  const dateStr = now.getFullYear() + '.' + pad2(now.getMonth() + 1) + '.' + pad2(now.getDate()) +
+                  ' · ' + pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+
+  document.getElementById('gc-meta').textContent = pharmacistName + ' 藥師 · ' + dateStr;
+  document.getElementById('gc-case-tag').textContent = '▎ ' + currentCase.cat;
+
+  const personaName = currentPersona ? currentPersona.name : currentCase.personality;
+  document.getElementById('gc-case-sub').textContent =
+    currentPatient.age + ' 歲 · ' + currentPatient.gender + ' · ' +
+    currentPatient.job + ' · ' + personaName;
+
+  const s = lastScores;
+  const avg = Math.round((s.empathy + s.professionalism + s.emotion_control + s.solution_orientation) / 4);
+  document.getElementById('gc-score-value').textContent = avg;
+
+  const badge = document.getElementById('gc-result-badge');
+  if (lastEndStatus === 'success') {
+    badge.className = 'gc-result-badge success';
+    badge.textContent = '✓ 通過';
+  } else if (lastEndStatus === 'fail' || lastEndStatus === 'fatal_fail') {
+    badge.className = 'gc-result-badge fail';
+    badge.textContent = '✕ 失敗';
+  } else {
+    badge.className = 'gc-result-badge ongoing';
+    badge.textContent = '📊 表現尚可';
+  }
+
+  function fmtDim(ai, self) {
+    let gap = '';
+    if (self != null && Math.abs(self - ai) >= 5) {
+      const diff = self - ai;
+      const arrow = diff > 0 ? '▲' : '▼';
+      const cls = Math.abs(diff) >= 30 ? 'high' : 'low';
+      gap = `<span class="gc-dim-gap ${cls}">${arrow}${Math.abs(diff)}</span>`;
+    }
+    return `<span class="gc-dim-ai">${ai}</span><span class="gc-dim-sep">/</span><span class="gc-dim-self">${self != null ? self : '—'}</span>${gap}`;
+  }
+
+  const se = selfScores || {};
+  document.getElementById('gc-dim-empathy').innerHTML = fmtDim(s.empathy,             se.empathy);
+  document.getElementById('gc-dim-prof').innerHTML    = fmtDim(s.professionalism,     se.professionalism);
+  document.getElementById('gc-dim-calm').innerHTML    = fmtDim(s.emotion_control,     se.emotionControl);
+  document.getElementById('gc-dim-sol').innerHTML     = fmtDim(s.solution_orientation, se.solutionOrientation);
+
+  // ── 畫雷達圖 ──
+  // 中心 (140,130)，半徑 100；0~100 分對應 0~100 像素
+  // 順序：同理心(上) / 專業度(右) / 情緒(下) / 解決(左)
+  function clampScore(v) {
+    const n = Number(v);
+    if (!isFinite(n)) return 0;
+    return Math.max(0, Math.min(100, n));
+  }
+  function radarPoints(empathy, prof, calm, sol) {
+    const e = clampScore(empathy);
+    const p = clampScore(prof);
+    const c = clampScore(calm);
+    const l = clampScore(sol);
+    // 上(140, 130-e) 右(140+p, 130) 下(140, 130+c) 左(140-l, 130)
+    return `140,${130 - e} ${140 + p},130 140,${130 + c} ${140 - l},130`;
+  }
+
+  const aiPts = {
+    top:    [140, 130 - clampScore(s.empathy)],
+    right:  [140 + clampScore(s.professionalism), 130],
+    bottom: [140, 130 + clampScore(s.emotion_control)],
+    left:   [140 - clampScore(s.solution_orientation), 130]
+  };
+  document.getElementById('gc-radar-ai-poly').setAttribute('points',
+    radarPoints(s.empathy, s.professionalism, s.emotion_control, s.solution_orientation));
+  ['top','right','bottom','left'].forEach(k => {
+    const el = document.getElementById('gc-radar-ai-' + k);
+    el.setAttribute('cx', aiPts[k][0]);
+    el.setAttribute('cy', aiPts[k][1]);
+  });
+
+  // 若沒自評資料，就把自評多邊形縮回中心（隱形）
+  const hasSelf = se.empathy != null && se.professionalism != null &&
+                  se.emotionControl != null && se.solutionOrientation != null;
+  if (hasSelf) {
+    const selfPts = {
+      top:    [140, 130 - clampScore(se.empathy)],
+      right:  [140 + clampScore(se.professionalism), 130],
+      bottom: [140, 130 + clampScore(se.emotionControl)],
+      left:   [140 - clampScore(se.solutionOrientation), 130]
+    };
+    document.getElementById('gc-radar-self-poly').setAttribute('points',
+      radarPoints(se.empathy, se.professionalism, se.emotionControl, se.solutionOrientation));
+    document.getElementById('gc-radar-self-poly').style.display = '';
+    ['top','right','bottom','left'].forEach(k => {
+      const el = document.getElementById('gc-radar-self-' + k);
+      el.setAttribute('cx', selfPts[k][0]);
+      el.setAttribute('cy', selfPts[k][1]);
+      el.style.display = '';
+    });
+  } else {
+    document.getElementById('gc-radar-self-poly').style.display = 'none';
+    ['top','right','bottom','left'].forEach(k => {
+      document.getElementById('gc-radar-self-' + k).style.display = 'none';
+    });
+  }
+
+  const drop = startEmotionLevel - emotionLevel;
+  const arrow = drop > 0 ? '▼' : drop < 0 ? '▲' : '';
+  const dropColor = drop > 0 ? '#34d399' : drop < 0 ? '#f87171' : '#94a3b8';
+  document.getElementById('gc-emotion-flow').innerHTML =
+    `<span style="color:#f87171">Level ${startEmotionLevel}</span>` +
+    `<span style="color:#64748b">→</span>` +
+    `<span style="color:#34d399">Level ${emotionLevel}</span>` +
+    (drop !== 0 ? `<span style="color:${dropColor};font-size:10px;margin-left:4px">${arrow}${Math.abs(drop)}</span>` : '');
+
+  document.getElementById('gc-feedback-text').textContent = s.feedback || '';
+  document.getElementById('growth-card-modal').classList.add('show');
+}
+
+document.getElementById('show-card-btn').addEventListener('click', showGrowthCard);
+
+document.getElementById('close-card-btn').addEventListener('click', () => {
+  document.getElementById('growth-card-modal').classList.remove('show');
+});
+</script>
+</body>
+</html>
